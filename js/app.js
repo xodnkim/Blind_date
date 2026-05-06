@@ -780,22 +780,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
                 };
-                    
-                    // Check if it's now a match
-                    const { data: latestMutual } = await db.from('matches')
-                        .select('status')
-                        .eq('from_user_id', targetUserId)
-                        .eq('to_user_id', sessionUser.id)
-                        .maybeSingle();
-                    
-                    if (latestMutual && latestMutual.status === 'pending') {
-                        showMatchSuccess();
-                    } else {
-                        const msg = myRequestStatus === 'rejected' ? '매칭 신청을 다시 보냈습니다!' : '매칭 신청을 보냈습니다!';
-                        alert(msg);
-                        window.location.reload();
-                    }
-                };
 
                 btnReject.onclick = async () => {
                     if (!confirm('정말 거절하시겠습니까? 다시는 볼 수 없게 됩니다.')) return;
