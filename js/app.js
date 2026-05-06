@@ -906,17 +906,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (isMutual) {
                     matchedIds.push(s.to_user_id);
-                } else if (s.status === 'pending') {
-                    if (isRejectedByThem) {
-                        s.wasRejected = true;
+                } else {
+                    // Include pending and rejected sent requests
+                    if (s.status === 'pending' || s.status === 'rejected') {
+                        if (isRejectedByThem || s.status === 'rejected') {
+                            s.wasRejectedByThem = true;
+                        }
+                        sentItems.push(s);
                     }
-                    sentItems.push(s);
                 }
             });
 
             received?.forEach(r => {
-                if (!matchedIds.includes(r.from_user_id) && r.status === 'pending') {
-                    // Check if I rejected this person
+                // Include pending and rejected received requests
+                if (!matchedIds.includes(r.from_user_id) && (r.status === 'pending' || r.status === 'rejected')) {
                     const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
                     r.myResponseStatus = myResponse?.status;
                     receivedItems.push(r);
@@ -931,16 +934,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let finalBadgeText = badgeText;
                 let finalBadgeClass = badgeClass;
 
-                // If this is in received list and I rejected it
+                // If this is in received list and it's rejected (by either)
                 const rReq = receivedItems.find(item => item.from_user_id === userId);
-                if (rReq && rReq.myResponseStatus === 'rejected') {
+                if (rReq && (rReq.myResponseStatus === 'rejected' || rReq.status === 'rejected')) {
                     finalBadgeText = '거절함';
                     finalBadgeClass = '';
                 }
 
-                // If this is in sent list and they rejected it
+                // If this is in sent list and it's rejected (by either)
                 const sReq = sentItems.find(item => item.to_user_id === userId);
-                if (sReq && sReq.wasRejected) {
+                if (sReq && (sReq.wasRejectedByThem || sReq.status === 'rejected')) {
                     finalBadgeText = '거절됨';
                     finalBadgeClass = '';
                 }
