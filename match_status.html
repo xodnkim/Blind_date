@@ -114,6 +114,24 @@
             margin-right: 8px;
             text-transform: uppercase;
         }
+
+        .section-badge-new {
+            background: var(--primary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+            font-weight: 800;
+            display: none; /* Shown via JS */
+            animation: pulse-glow 1.5s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(255, 77, 109, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 77, 109, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 77, 109, 0); }
+        }
     </style>
 </head>
 <body class="dashboard-body">
@@ -144,7 +162,7 @@
             
             <!-- 1. Matched Couples -->
             <section class="status-section">
-                <h3 class="status-title"><i class="ph-fill ph-hands-clapping"></i> 매칭 성공!</h3>
+                <h3 class="status-title"><i class="ph-fill ph-hands-clapping"></i> 매칭 성공! <span id="newBadgeMatched" class="section-badge-new">NEW</span></h3>
                 <div class="match-list" id="matchedList">
                     <!-- Loaded via JS -->
                 </div>
@@ -152,7 +170,7 @@
 
             <!-- 2. Received Requests -->
             <section class="status-section">
-                <h3 class="status-title"><i class="ph-fill ph-heart-straight"></i> 나를 선택한 분들</h3>
+                <h3 class="status-title"><i class="ph-fill ph-heart-straight"></i> 나를 선택한 분들 <span id="newBadgeReceived" class="section-badge-new">NEW</span></h3>
                 <div class="match-list" id="receivedList">
                     <!-- Loaded via JS -->
                 </div>
@@ -160,7 +178,7 @@
 
             <!-- 3. Sent Requests -->
             <section class="status-section">
-                <h3 class="status-title"><i class="ph-fill ph-paper-plane-tilt"></i> 내가 보낸 신청</h3>
+                <h3 class="status-title"><i class="ph-fill ph-paper-plane-tilt"></i> 내가 보낸 신청 <span id="newBadgeSent" class="section-badge-new">NEW</span></h3>
                 <div class="match-list" id="sentList">
                     <!-- Loaded via JS -->
                 </div>

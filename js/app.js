@@ -1026,6 +1026,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending', false, true, r.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
             sentList.innerHTML = sentItems.length > 0 ? sentItems.map(s => renderItem(s.to_user_id, '대기 중', '', false, false, s.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">보낸 신청이 없습니다.</p>';
             
+            // Update Section Badges
+            if (matchedItems.some(i => i.isNew)) document.getElementById('newBadgeMatched').style.display = 'inline-block';
+            if (receivedItems.some(i => i.isNew)) document.getElementById('newBadgeReceived').style.display = 'inline-block';
+            if (sentItems.some(i => i.isNew)) document.getElementById('newBadgeSent').style.display = 'inline-block';
+
             // 6. Update last viewed timestamp
             localStorage.setItem(`lastViewedMatches_${sessionUser.id}`, new Date().toISOString());
         };
