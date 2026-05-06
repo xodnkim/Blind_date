@@ -910,43 +910,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loadMatchStatus = async () => {
             if (!db || !sessionUser) return;
 
-            // Save view timestamp to clear notifications
-            localStorage.setItem(`lastViewedMatches_${sessionUser.id}`, new Date().toISOString());
+            // 1. Get Seen IDs from localStorage to determine what's "NEW"
+            const seenIdsKey = `seenMatchIds_${sessionUser.id}`;
+            const seenIds = JSON.parse(localStorage.getItem(seenIdsKey) || '[]');
 
-            // 1. Fetch Sent Requests
-            const { data: sent } = await db.from('matches').select('to_user_id, status').eq('from_user_id', sessionUser.id);
-            
-            // 2. Fetch Received Requests
-            const { data: received } = await db.from('matches').select('from_user_id, status').eq('to_user_id', sessionUser.id);
+            const { data: profiles } = await db.from('profiles').select('*');
+            const profileMap = {};
+            profiles?.forEach(p => profileMap[p.user_id] = p);
 
-            // 3. Profiles for all these IDs
-            const allIds = [...new Set([...(sent?.map(s => s.to_user_id) || []), ...(received?.map(r => r.from_user_id) || [])])];
-            const { data: profiles } = await db.from('profiles').select('user_id, name, birth_year, location').in('user_id', allIds);
-            const profileMap = Object.fromEntries(profiles?.map(p => [p.user_id, p]) || []);
+            const { data: sent } = await db.from('matches').select('*').eq('from_user_id', sessionUser.id);
+            const { data: received } = await db.from('matches').select('*').eq('to_user_id', sessionUser.id);
 
             document.getElementById('loadingArea').style.display = 'none';
             document.getElementById('statusContent').style.display = 'block';
 
-            // Get the last time the user viewed this page
-            const lastViewed = localStorage.getItem(`lastViewedMatches_${sessionUser.id}`);
-            const previousLastViewed = lastViewed ? new Date(lastViewed) : new Date(0);
-
-            // Filter logic
             const matchedList = document.getElementById('matchedList');
             const receivedList = document.getElementById('receivedList');
             const sentList = document.getElementById('sentList');
 
-            const matchedItems = []; // Store objects with {userId, isNew}
+            const matchedItems = []; 
             const receivedItems = [];
             const sentItems = [];
             const matchedIds = [];
-
-            const isRecordNew = (rec) => {
-                if (!rec) return false;
-                const cTime = new Date(rec.created_at);
-                const uTime = rec.updated_at ? new Date(rec.updated_at) : cTime;
-                return cTime > previousLastViewed || uTime > previousLastViewed;
-            };
+            const currentRecordIds = []; // All IDs currently visible
 
             // Identify Mutual Matches
             sent?.forEach(s => {
@@ -955,35 +941,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (isMutual) {
                     matchedIds.push(s.to_user_id);
-                    // 3. Match success: Highlight if either record is new
-                    const isNew = isRecordNew(s) || isRecordNew(mutualRec);
+                    currentRecordIds.push(s.id);
+                    if (mutualRec) currentRecordIds.push(mutualRec.id);
+                    
+                    const isNew = !seenIds.includes(s.id) || (mutualRec && !seenIds.includes(mutualRec.id));
                     matchedItems.push({ userId: s.to_user_id, isNew });
                 } else if (s.status === 'pending' || s.status === 'rejected') {
-                    // This is a request I sent
+                    currentRecordIds.push(s.id);
                     if (s.status === 'rejected') {
                         s.wasRejectedByThem = true;
-                        // 2. Sent request rejected: Highlight only if it just changed to rejected
-                        s.isNew = isRecordNew(s);
+                        s.isNew = !seenIds.includes(s.id);
                     } else {
-                        // Pending sent: No highlight (I already know I sent it)
-                        s.isNew = false;
+                        s.isNew = false; // Don't highlight my own newly sent requests
                     }
                     sentItems.push(s);
                 }
             });
 
             received?.forEach(r => {
-                // This is a request I received
                 if (!matchedIds.includes(r.from_user_id) && (r.status === 'pending' || r.status === 'rejected')) {
+                    currentRecordIds.push(r.id);
                     const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
                     r.myResponseStatus = myResponse?.status;
-                    // Received request: Highlight only if it is a new 'pending' request
-                    r.isNew = r.status === 'pending' && new Date(r.created_at) > previousLastViewed;
+                    // Highlight if new pending request received
+                    r.isNew = r.status === 'pending' && !seenIds.includes(r.id);
                     receivedItems.push(r);
                 }
             });
 
-            // Render
             const renderItem = (userId, badgeText, badgeClass = '', isMatched = false, showDelete = false, isNew = false) => {
                 const p = profileMap[userId];
                 if (!p) return '';
@@ -991,14 +976,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let finalBadgeText = badgeText;
                 let finalBadgeClass = badgeClass;
 
-                // If this is in received list and it's rejected (by either)
                 const rReq = receivedItems.find(item => item.from_user_id === userId);
                 if (rReq && (rReq.myResponseStatus === 'rejected' || rReq.status === 'rejected')) {
                     finalBadgeText = '거절함';
                     finalBadgeClass = '';
                 }
 
-                // If this is in sent list and it's rejected (by either)
                 const sReq = sentItems.find(item => item.to_user_id === userId);
                 if (sReq && (sReq.wasRejectedByThem || sReq.status === 'rejected')) {
                     finalBadgeText = '거절됨';
@@ -1026,12 +1009,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending', false, true, r.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
             sentList.innerHTML = sentItems.length > 0 ? sentItems.map(s => renderItem(s.to_user_id, '대기 중', '', false, false, s.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">보낸 신청이 없습니다.</p>';
             
-            // Update Section Badges
             if (matchedItems.some(i => i.isNew)) document.getElementById('newBadgeMatched').style.display = 'inline-block';
             if (receivedItems.some(i => i.isNew)) document.getElementById('newBadgeReceived').style.display = 'inline-block';
             if (sentItems.some(i => i.isNew)) document.getElementById('newBadgeSent').style.display = 'inline-block';
 
-            // 6. Update last viewed timestamp
+            // Mark all currently visible IDs as "SEEN"
+            localStorage.setItem(seenIdsKey, JSON.stringify(currentRecordIds));
+            
+            // Also update the global timestamp for the bell icon
             localStorage.setItem(`lastViewedMatches_${sessionUser.id}`, new Date().toISOString());
         };
 
