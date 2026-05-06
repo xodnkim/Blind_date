@@ -673,9 +673,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnRequest.disabled = true;
                     btnRequest.style.opacity = '0.7';
                 } else if (myRequestStatus === 'rejected') {
-                    btnRequest.innerText = '거절됨';
-                    btnRequest.disabled = true;
+                    btnRequest.innerText = '다시 매칭하기';
+                    btnRequest.disabled = false;
+                    btnRequest.style.opacity = '1';
                     btnReject.style.display = 'none';
+                    
+                    // Allow rematching by updating status to pending
+                    btnRequest.onclick = async () => {
+                        if (!confirm('다시 매칭 신청을 보내시겠습니까?')) return;
+                        const { error } = await db.from('matches').update({ status: 'pending' }).eq('from_user_id', sessionUser.id).eq('to_user_id', targetUserId);
+                        if (error) alert('신청 중 오류 발생: ' + error.message);
+                        else {
+                            alert('매칭 신청을 다시 보냈습니다!');
+                            window.location.reload();
+                        }
+                    };
                 } else if (incomingReq) {
                     // Received a request but haven't responded
                     btnRequest.innerText = '매칭 수락하기';

@@ -19,6 +19,11 @@
     font-family: 'Outfit', sans-serif;
 }
 
+html, body {
+    overflow-x: hidden;
+    width: 100%;
+}
+
 body {
     background-color: var(--bg-dark);
     color: var(--text-main);
@@ -26,7 +31,6 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow-x: hidden;
     overflow-y: auto; /* Allow vertical scroll for small screens */
     position: relative;
     padding: 20px 0;
