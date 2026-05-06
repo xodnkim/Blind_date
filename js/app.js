@@ -441,19 +441,41 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const loadProfileView = async () => {
             if (!db) return;
-            const { data: profile, error } = await db.from('profiles').select('*').eq('user_id', sessionUser.id).single();
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUserId = urlParams.get('id') || sessionUser.id;
+            const isSelf = targetUserId === sessionUser.id;
+
+            // 1. Fetch Profile Data
+            const { data: profile, error } = await db.from('profiles').select('*').eq('user_id', targetUserId).single();
             
             document.getElementById('loadingMsg').style.display = 'none';
 
             if (error || !profile) {
-                alert('등록된 프로필을 찾을 수 없습니다.');
+                alert('프로필을 찾을 수 없습니다.');
                 window.location.href = 'main.html';
                 return;
             }
 
+            // 2. Fetch Match Status (if not self)
+            let isMatched = false;
+            let myRequestStatus = null; // 'pending' or 'rejected' or null
+
+            if (!isSelf) {
+                // Check if I liked them
+                const { data: myReq } = await db.from('matches').select('status').eq('from_user_id', sessionUser.id).eq('to_user_id', targetUserId).single();
+                myRequestStatus = myReq?.status;
+
+                // Check if we are mutually matched
+                const { data: mutual } = await db.from('matches').select('from_user_id').eq('from_user_id', targetUserId).eq('to_user_id', sessionUser.id).single();
+                if (myRequestStatus === 'pending' && mutual) {
+                    isMatched = true;
+                }
+            }
+
             document.getElementById('profileViewCard').style.display = 'block';
 
-            // --- Photo Slider Logic ---
+            // 3. Photo Slider Logic
             const photos = [profile.photo1, profile.photo2, profile.photo3].filter(p => p);
             window.profilePhotos = photos;
             window.currentPhotoIndex = 0;
@@ -468,9 +490,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
-                // Update Image
-                document.getElementById('vPhoto').src = photos[window.currentPhotoIndex];
-                document.getElementById('vPhoto').style.display = 'block';
+                const img = document.getElementById('vPhoto');
+                img.src = photos[window.currentPhotoIndex];
+                img.style.display = 'block';
+
+                // Blur logic: If not self and not matched, blur the photo
+                if (!isSelf && !isMatched) {
+                    img.classList.add('blurred');
+                } else {
+                    img.classList.remove('blurred');
+                }
 
                 // Update Indicators
                 const indicators = document.getElementById('photoIndicators');
@@ -487,32 +516,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             window.prevPhoto = () => {
                 if (!window.profilePhotos || window.profilePhotos.length <= 1) return;
-                if (window.currentPhotoIndex > 0) {
-                    window.currentPhotoIndex--;
-                    updatePhotoView();
-                } else {
-                    // Loop to end
-                    window.currentPhotoIndex = window.profilePhotos.length - 1;
-                    updatePhotoView();
-                }
+                window.currentPhotoIndex = (window.currentPhotoIndex > 0) ? window.currentPhotoIndex - 1 : window.profilePhotos.length - 1;
+                updatePhotoView();
             };
 
             window.nextPhoto = () => {
                 if (!window.profilePhotos || window.profilePhotos.length <= 1) return;
-                if (window.currentPhotoIndex < window.profilePhotos.length - 1) {
-                    window.currentPhotoIndex++;
-                    updatePhotoView();
-                } else {
-                    // Loop to start
-                    window.currentPhotoIndex = 0;
-                    updatePhotoView();
-                }
+                window.currentPhotoIndex = (window.currentPhotoIndex < window.profilePhotos.length - 1) ? window.currentPhotoIndex + 1 : 0;
+                updatePhotoView();
             };
 
-            // Initial load
             updatePhotoView();
-            // --- End Photo Slider Logic ---
-            
+
+            // 4. Fill Information
             document.getElementById('vName').innerText = profile.name + (profile.gender === '여성' ? ' 🙎‍♀️' : ' 🙎‍♂️');
             document.getElementById('vAge').innerText = profile.birth_year + '년생';
             document.getElementById('vLocation').innerText = profile.location;
@@ -530,19 +546,196 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('vIntro').innerText = profile.intro_message;
             document.getElementById('vIdeal').innerText = profile.ideal_type;
 
-            // Hobbies as tags
             const hobbiesArea = document.getElementById('vHobbiesArea');
             if (profile.hobbies) {
-                // Split by comma or space, remove empty strings
                 const hobbiesList = profile.hobbies.split(/[\s,]+/).filter(h => h.trim() !== '');
-                hobbiesArea.innerHTML = hobbiesList.map(h => {
-                    const cleanH = h.replace(/^#/, ''); // Remove existing # if user typed it
-                    return `<div class="view-tag">#${cleanH}</div>`;
-                }).join('');
+                hobbiesArea.innerHTML = hobbiesList.map(h => `<div class="view-tag">#${h.replace(/^#/, '')}</div>`).join('');
+            }
+
+            // 5. Match Action Logic
+            const actionArea = document.getElementById('matchActionArea');
+            const selfMsg = document.getElementById('selfProfileMsg');
+
+            if (isSelf) {
+                selfMsg.style.display = 'block';
+            } else {
+                actionArea.style.display = 'block';
+                
+                const successMsg = document.getElementById('matchSuccessMsg');
+                const matchButtons = document.getElementById('matchButtons');
+                const btnRequest = document.getElementById('btnRequestMatch');
+                const btnReject = document.getElementById('btnReject');
+
+                if (isMatched) {
+                    // Reveal Phone Number
+                    const { data: targetUser } = await db.from('users').select('phone').eq('id', targetUserId).single();
+                    document.getElementById('vPhone').innerText = targetUser?.phone || '공개 불가';
+                    successMsg.style.display = 'block';
+                    matchButtons.style.display = 'none';
+                } else if (myRequestStatus === 'pending') {
+                    btnRequest.innerText = '매칭 신청 완료';
+                    btnRequest.disabled = true;
+                    btnRequest.style.opacity = '0.7';
+                } else if (myRequestStatus === 'rejected') {
+                    btnRequest.innerText = '거절됨';
+                    btnRequest.disabled = true;
+                    btnReject.style.display = 'none';
+                }
+
+                // Event Listeners
+                btnRequest.onclick = async () => {
+                    if (myRequestStatus) return;
+                    const { error } = await db.from('matches').insert([{ from_user_id: sessionUser.id, to_user_id: targetUserId, status: 'pending' }]);
+                    if (error) alert('신청 중 오류 발생: ' + error.message);
+                    else {
+                        alert('매칭 신청을 보냈습니다! 상대방도 신청하면 매칭이 완료됩니다.');
+                        window.location.reload();
+                    }
+                };
+
+                btnReject.onclick = async () => {
+                    if (!confirm('정말 거절하시겠습니까? 다시는 볼 수 없게 됩니다.')) return;
+                    const { error } = await db.from('matches').insert([{ from_user_id: sessionUser.id, to_user_id: targetUserId, status: 'rejected' }]);
+                    if (error) alert('처리 중 오류 발생: ' + error.message);
+                    else {
+                        alert('거절되었습니다.');
+                        window.location.href = 'find_date.html';
+                    }
+                };
             }
         };
 
         loadProfileView();
+    }
+
+    // --- Find Date Page Logic ---
+    const isFindDatePage = window.location.pathname.includes('find_date.html');
+    if (isFindDatePage) {
+        const sessionUser = getSessionUser();
+        if (!sessionUser) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        const loadMembers = async () => {
+            if (!db) return;
+            
+            // 1. Get current user's profile to know their gender
+            const { data: myProfile } = await db.from('profiles').select('gender').eq('user_id', sessionUser.id).single();
+            const targetGender = myProfile?.gender === '남성' ? '여성' : (myProfile?.gender === '여성' ? '남성' : null);
+
+            // 2. Fetch all profiles (excluding self)
+            let query = db.from('profiles').select('*').neq('user_id', sessionUser.id);
+            
+            // 3. Filter by gender if possible
+            if (targetGender) {
+                query = query.eq('gender', targetGender);
+            }
+
+            const { data: members, error } = await query;
+            
+            document.getElementById('loadingArea').style.display = 'none';
+
+            if (error || !members || members.length === 0) {
+                document.getElementById('noMembersMsg').style.display = 'block';
+                return;
+            }
+
+            const grid = document.getElementById('membersGrid');
+            grid.innerHTML = members.map(m => `
+                <div class="member-card" onclick="window.location.href='profile_view.html?id=${m.user_id}'">
+                    <div class="member-photo-blur"></div>
+                    <div class="member-info">
+                        <div class="member-name-age">${m.name} <span style="font-weight: 400; color: #888;">· ${m.birth_year}년생</span></div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem;">${m.location} · ${m.height}cm</div>
+                        <div class="member-tags">
+                            <span class="member-tag">${m.job}</span>
+                            <span class="member-tag">${m.mbti}</span>
+                            <span class="member-tag">${m.body_type}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        loadMembers();
+    }
+
+    // --- Match Status Page Logic ---
+    const isMatchStatusPage = window.location.pathname.includes('match_status.html');
+    if (isMatchStatusPage) {
+        const sessionUser = getSessionUser();
+        if (!sessionUser) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        const loadMatchStatus = async () => {
+            if (!db) return;
+
+            // 1. Fetch Sent Requests
+            const { data: sent } = await db.from('matches').select('to_user_id, status').eq('from_user_id', sessionUser.id);
+            
+            // 2. Fetch Received Requests
+            const { data: received } = await db.from('matches').select('from_user_id, status').eq('to_user_id', sessionUser.id);
+
+            // 3. Profiles for all these IDs
+            const allIds = [...new Set([...(sent?.map(s => s.to_user_id) || []), ...(received?.map(r => r.from_user_id) || [])])];
+            const { data: profiles } = await db.from('profiles').select('user_id, name, birth_year, location').in('user_id', allIds);
+            const profileMap = Object.fromEntries(profiles?.map(p => [p.user_id, p]) || []);
+
+            document.getElementById('loadingArea').style.display = 'none';
+            document.getElementById('statusContent').style.display = 'block';
+
+            // Filter logic
+            const matchedList = document.getElementById('matchedList');
+            const receivedList = document.getElementById('receivedList');
+            const sentList = document.getElementById('sentList');
+
+            const matchedIds = [];
+            const receivedItems = [];
+            const sentItems = [];
+
+            // Identify Mutual Matches
+            sent?.forEach(s => {
+                const isMutual = received?.some(r => r.from_user_id === s.to_user_id && s.status === 'pending');
+                if (isMutual) {
+                    matchedIds.push(s.to_user_id);
+                } else if (s.status === 'pending') {
+                    sentItems.push(s);
+                }
+            });
+
+            received?.forEach(r => {
+                if (!matchedIds.includes(r.from_user_id) && r.status === 'pending') {
+                    receivedItems.push(r);
+                }
+            });
+
+            // Render
+            const renderItem = (userId, badgeText, badgeClass = '', isMatched = false) => {
+                const p = profileMap[userId];
+                if (!p) return '';
+                return `
+                    <div class="match-item ${isMatched ? 'success' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
+                        <div class="user-info">
+                            <div class="user-avatar-small"><i class="ph-fill ph-user"></i></div>
+                            <div class="user-details">
+                                <h4>${p.name}</h4>
+                                <p>${p.birth_year}년생 · ${p.location}</p>
+                            </div>
+                        </div>
+                        <span class="match-status-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                `;
+            };
+
+            matchedList.innerHTML = matchedIds.length > 0 ? matchedIds.map(id => renderItem(id, '매칭 성공', 'badge-success', true)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">아직 매칭된 인연이 없습니다.</p>';
+            receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending')).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
+            sentList.innerHTML = sentItems.length > 0 ? sentItems.map(s => renderItem(s.to_user_id, '대기 중')).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">보낸 신청이 없습니다.</p>';
+        };
+
+        loadMatchStatus();
     }
 
 });
