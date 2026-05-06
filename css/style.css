@@ -156,6 +156,23 @@ body {
     box-shadow: 0 0 0 4px var(--primary-glow);
 }
 
+.terms-box {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.terms-content {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
 .form-options {
     margin-bottom: 24px;
 }
