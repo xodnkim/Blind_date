@@ -294,8 +294,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     const { error: uploadError } = await db.storage.from('profile_photos').upload(filePath, file);
                     if (uploadError) {
+                        alert(`사진 업로드 실패 (${fileInputId}): ` + uploadError.message + '\n\n* Storage 권한 문제일 가능성이 높습니다.');
                         console.error(`Error uploading ${fileInputId}:`, uploadError.message);
-                        return null; // 업로드 실패해도 계속 진행 (또는 에러 처리 가능)
+                        return null; 
                     }
                     
                     const { data } = db.storage.from('profile_photos').getPublicUrl(filePath);
