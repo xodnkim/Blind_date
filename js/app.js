@@ -722,9 +722,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btnRequest.onclick = async () => {
                     if (myRequestStatus === 'pending') return;
                     
+                    if (mutual && mutual.status === 'rejected') {
+                        // REMATCH LOGIC: Clear the slate and start a new request
+                        if (!confirm('상대방에게 다시 매칭 신청을 보내시겠습니까?')) return;
+                        
+                        // 1. Delete their old request that I rejected
+                        await db.from('matches')
+                            .delete()
+                            .eq('from_user_id', targetUserId)
+                            .eq('to_user_id', sessionUser.id);
+                        
+                        // 2. Create my new request to them
+                        const { error } = await db.from('matches')
+                            .insert([{ 
+                                from_user_id: sessionUser.id, 
+                                to_user_id: targetUserId, 
+                                status: 'pending' 
+                            }]);
+                            
+                        if (error) {
+                            alert('신청 중 오류 발생: ' + error.message);
+                        } else {
+                            alert('다시 매칭 신청을 보냈습니다! 상대방의 수락을 기다려주세요.');
+                            window.location.href = 'main.html';
+                        }
+                        return;
+                    }
+
                     if (myRequestStatus === 'rejected') {
                         if (!confirm('정말 다시 매칭 신청을 보내시겠습니까?')) return;
-                        // Use upsert to reset the status to pending
                         const { error } = await db.from('matches')
                             .upsert([{ 
                                 from_user_id: sessionUser.id, 
@@ -734,7 +760,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             
                         if (error) {
                             alert('신청 중 오류 발생: ' + error.message);
-                            return;
+                        } else {
+                            alert('매칭 신청을 다시 보냈습니다!');
+                            window.location.href = 'main.html';
                         }
                     } else {
                         // New request or accepting incoming
@@ -746,9 +774,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         
                         if (error) {
                             alert('신청 중 오류 발생: ' + error.message);
-                            return;
+                        } else {
+                            alert('매칭 신청을 보냈습니다!');
+                            window.location.href = 'main.html';
                         }
                     }
+                };
                     
                     // Check if it's now a match
                     const { data: latestMutual } = await db.from('matches')
