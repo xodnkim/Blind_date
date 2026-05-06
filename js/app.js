@@ -624,10 +624,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { data: myProfile } = await db.from('profiles').select('gender').eq('user_id', sessionUser.id).single();
             const targetGender = myProfile?.gender === '남성' ? '여성' : (myProfile?.gender === '여성' ? '남성' : null);
 
-            // 2. Fetch all profiles (excluding self)
-            let query = db.from('profiles').select('*').neq('user_id', sessionUser.id);
+            // 2. Get IDs I've already interacted with (Requested or Rejected)
+            const { data: myMatches } = await db.from('matches').select('to_user_id').eq('from_user_id', sessionUser.id);
+            const excludedIds = myMatches?.map(m => m.to_user_id) || [];
+            excludedIds.push(sessionUser.id); // Also exclude myself
+
+            // 3. Fetch all profiles
+            let query = db.from('profiles').select('*');
             
-            // 3. Filter by gender if possible
+            // 4. Filter by gender if possible
             if (targetGender) {
                 query = query.eq('gender', targetGender);
             }
@@ -641,8 +646,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            // 5. Client-side filter for excluded IDs
+            const filteredMembers = members.filter(m => !excludedIds.includes(m.user_id));
+
+            if (filteredMembers.length === 0) {
+                document.getElementById('noMembersMsg').style.display = 'block';
+                return;
+            }
+
             const grid = document.getElementById('membersGrid');
-            grid.innerHTML = members.map(m => `
+            grid.innerHTML = filteredMembers.map(m => `
                 <div class="member-card" onclick="window.location.href='profile_view.html?id=${m.user_id}'">
                     <div class="member-photo-blur"></div>
                     <div class="member-info">
