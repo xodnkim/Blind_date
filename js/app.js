@@ -677,17 +677,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnRequest.disabled = false;
                     btnRequest.style.opacity = '1';
                     btnReject.style.display = 'none';
-                    
-                    // Allow rematching by updating status to pending
-                    btnRequest.onclick = async () => {
-                        if (!confirm('다시 매칭 신청을 보내시겠습니까?')) return;
-                        const { error } = await db.from('matches').update({ status: 'pending' }).eq('from_user_id', sessionUser.id).eq('to_user_id', targetUserId);
-                        if (error) alert('신청 중 오류 발생: ' + error.message);
-                        else {
-                            alert('매칭 신청을 다시 보냈습니다!');
-                            window.location.reload();
-                        }
-                    };
                 } else if (incomingReq) {
                     // Received a request but haven't responded
                     btnRequest.innerText = '매칭 수락하기';
@@ -709,26 +698,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Event Listeners
                 btnRequest.onclick = async () => {
-                    if (myRequestStatus === 'pending' || myRequestStatus === 'rejected') return;
+                    if (myRequestStatus === 'pending') return;
                     
-                    const { error } = await db.from('matches').insert([{ from_user_id: sessionUser.id, to_user_id: targetUserId, status: 'pending' }]);
-                    
-                    if (error) alert('신청 중 오류 발생: ' + error.message);
-                    else {
-                        // Check if it's now a match
-                        const { data: mutual } = await db.from('matches')
-                            .select('id')
-                            .eq('from_user_id', targetUserId)
-                            .eq('to_user_id', sessionUser.id)
-                            .eq('status', 'pending')
-                            .maybeSingle();
-                        
-                        if (mutual) {
-                            showMatchSuccess();
-                        } else {
-                            alert('매칭 신청을 보냈습니다! 상대방도 신청하면 매칭이 완료됩니다.');
-                            window.location.reload();
+                    if (myRequestStatus === 'rejected') {
+                        if (!confirm('다시 매칭 신청을 보내시겠습니까?')) return;
+                        const { error } = await db.from('matches').update({ status: 'pending' }).eq('from_user_id', sessionUser.id).eq('to_user_id', targetUserId);
+                        if (error) {
+                            alert('신청 중 오류 발생: ' + error.message);
+                            return;
                         }
+                    } else {
+                        const { error } = await db.from('matches').insert([{ from_user_id: sessionUser.id, to_user_id: targetUserId, status: 'pending' }]);
+                        if (error) {
+                            alert('신청 중 오류 발생: ' + error.message);
+                            return;
+                        }
+                    }
+                    
+                    // Check if it's now a match
+                    const { data: mutual } = await db.from('matches')
+                        .select('status')
+                        .eq('from_user_id', targetUserId)
+                        .eq('to_user_id', sessionUser.id)
+                        .maybeSingle();
+                    
+                    if (mutual && mutual.status === 'pending') {
+                        showMatchSuccess();
+                    } else {
+                        alert('매칭 신청을 보냈습니다!');
+                        window.location.reload();
                     }
                 };
 
