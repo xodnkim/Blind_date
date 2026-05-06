@@ -10,6 +10,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn("Supabase client not found. DB operations will fail, but hardcoded admin might work.");
     }
 
+    // --- 에러 로그 기록 함수 ---
+    const logError = async (message, userId = 'guest') => {
+        if (!db) return;
+        try {
+            await db.from('error_logs').insert([{
+                user_id: userId,
+                page_url: window.location.href,
+                error_message: message,
+                browser_info: navigator.userAgent
+            }]);
+        } catch (e) {
+            console.error("Critical: Failed to log error to DB", e);
+        }
+    };
+
     // --- Admin Credentials (Hardcoded for initial setup) ---
     const ADMIN_ID = "xodn9900";
     const ADMIN_PW = "dkvmflzk12!";
@@ -296,8 +311,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     const { error: uploadError } = await db.storage.from('profile_photos').upload(filePath, file);
                     if (uploadError) {
-                        alert(`사진 업로드 실패 (${fileInputId}): ` + uploadError.message + '\n\n* Storage 권한 문제일 가능성이 높습니다.');
-                        console.error(`Error uploading ${fileInputId}:`, uploadError.message);
+                        const errMsg = `사진 업로드 실패 (${fileInputId}): ${uploadError.message}`;
+                        alert(errMsg + '\n\n* Storage 권한 문제일 가능성이 높습니다.');
+                        logError(errMsg, sessionUser.id);
                         return null; 
                     }
                     
@@ -318,7 +334,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { error } = await db.from('profiles').upsert(profileData);
 
                     if (error) {
-                        alert('프로필 저장 중 오류가 발생했습니다: ' + error.message);
+                        const errMsg = `프로필 저장 실패: ${error.message}`;
+                        alert(errMsg + '\n\n* DB 컬럼이 부족하거나 설정 문제일 수 있습니다.');
+                        logError(errMsg, sessionUser.id);
                     } else {
                         alert('프로필과 사진이 성공적으로 저장되었습니다!');
                         window.location.href = 'main.html';
