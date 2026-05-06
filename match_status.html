@@ -89,6 +89,30 @@
 
         .badge-success { background: #ffce00; color: #000; font-weight: bold; }
         .badge-pending { background: rgba(255, 255, 255, 0.2); }
+
+        /* New Item Highlight */
+        .match-item.is-new {
+            position: relative;
+            border-left: 4px solid var(--primary);
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { border-left-color: var(--primary); }
+            50% { border-left-color: transparent; }
+            100% { border-left-color: var(--primary); }
+        }
+
+        .new-badge {
+            background: var(--primary);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 8px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body class="dashboard-body">

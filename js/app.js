@@ -888,26 +888,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('loadingArea').style.display = 'none';
             document.getElementById('statusContent').style.display = 'block';
 
+            // Get the last time the user viewed this page
+            const lastViewed = localStorage.getItem(`lastViewedMatches_${sessionUser.id}`);
+            const previousLastViewed = lastViewed ? new Date(lastViewed) : new Date(0);
+
             // Filter logic
             const matchedList = document.getElementById('matchedList');
             const receivedList = document.getElementById('receivedList');
             const sentList = document.getElementById('sentList');
 
-            const matchedIds = [];
+            const matchedItems = []; // Store objects with {userId, isNew}
             const receivedItems = [];
             const sentItems = [];
+            const matchedIds = [];
 
             // Identify Mutual Matches
             sent?.forEach(s => {
-                const isMutual = received?.some(r => r.from_user_id === s.to_user_id && r.status === 'pending') && s.status === 'pending';
+                const mutualRec = received?.find(r => r.from_user_id === s.to_user_id && r.status === 'pending');
+                const isMutual = mutualRec && s.status === 'pending';
                 
                 if (isMutual) {
                     matchedIds.push(s.to_user_id);
+                    // Match is new if either the sent or received record is new
+                    const isNew = new Date(s.created_at) > previousLastViewed || (mutualRec && new Date(mutualRec.created_at) > previousLastViewed);
+                    matchedItems.push({ userId: s.to_user_id, isNew });
                 } else if (s.status === 'pending' || s.status === 'rejected') {
                     // This is a request I sent
                     if (s.status === 'rejected') {
                         s.wasRejectedByThem = true;
                     }
+                    s.isNew = new Date(s.created_at) > previousLastViewed;
                     sentItems.push(s);
                 }
             });
@@ -917,12 +927,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!matchedIds.includes(r.from_user_id) && (r.status === 'pending' || r.status === 'rejected')) {
                     const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
                     r.myResponseStatus = myResponse?.status;
+                    r.isNew = new Date(r.created_at) > previousLastViewed;
                     receivedItems.push(r);
                 }
             });
 
             // Render
-            const renderItem = (userId, badgeText, badgeClass = '', isMatched = false, showDelete = false) => {
+            const renderItem = (userId, badgeText, badgeClass = '', isMatched = false, showDelete = false, isNew = false) => {
                 const p = profileMap[userId];
                 if (!p) return '';
 
@@ -944,11 +955,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 return `
-                    <div class="match-item ${isMatched ? 'success' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
+                    <div class="match-item ${isMatched ? 'success' : ''} ${isNew ? 'is-new' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
                         <div class="user-info">
                             <div class="user-avatar-small"><i class="ph-fill ph-user"></i></div>
                             <div class="user-details">
-                                <h4>${p.name}</h4>
+                                <h4>${isNew ? '<span class="new-badge">NEW</span>' : ''}${p.name}</h4>
                                 <p>${p.birth_year}년생 · ${p.location}</p>
                             </div>
                         </div>
@@ -960,9 +971,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
             };
 
-            matchedList.innerHTML = matchedIds.length > 0 ? matchedIds.map(id => renderItem(id, '매칭 성공', 'badge-success', true)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">아직 매칭된 인연이 없습니다.</p>';
-            receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending', false, true)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
-            sentList.innerHTML = sentItems.length > 0 ? sentItems.map(s => renderItem(s.to_user_id, '대기 중')).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">보낸 신청이 없습니다.</p>';
+            matchedList.innerHTML = matchedItems.length > 0 ? matchedItems.map(item => renderItem(item.userId, '매칭 성공', 'badge-success', true, false, item.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">아직 매칭된 인연이 없습니다.</p>';
+            receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending', false, true, r.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
+            sentList.innerHTML = sentItems.length > 0 ? sentItems.map(s => renderItem(s.to_user_id, '대기 중', '', false, false, s.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">보낸 신청이 없습니다.</p>';
+            
+            // 6. Update last viewed timestamp
+            localStorage.setItem(`lastViewedMatches_${sessionUser.id}`, new Date().toISOString());
         };
 
         window.deleteMatch = async (targetUserId) => {

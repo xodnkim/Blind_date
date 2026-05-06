@@ -31,9 +31,10 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow-y: auto; /* Allow vertical scroll for small screens */
+    overflow-y: auto; 
+    overflow-x: hidden;
     position: relative;
-    padding: 20px 0;
+    padding: 0;
 }
 
 /* --- Trendy Background Blobs --- */
