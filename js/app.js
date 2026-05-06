@@ -68,8 +68,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            const rememberMe = document.getElementById('rememberMe')?.checked;
             alert(`${user.name}님, 환영합니다!`);
-            sessionStorage.setItem('currentUser', JSON.stringify(user));
+            
+            const userData = JSON.stringify(user);
+            if (rememberMe) {
+                localStorage.setItem('currentUser', userData);
+            } else {
+                sessionStorage.setItem('currentUser', userData);
+            }
             window.location.href = 'main.html';
         });
     }
@@ -118,11 +125,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    const getSessionUser = () => {
+        return JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser'));
+    };
+
+    const logout = () => {
+        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
+    };
+
     // --- Main Dashboard Logic ---
     const isMainPage = window.location.pathname.includes('main.html');
     
     if (isMainPage) {
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        const sessionUser = getSessionUser();
         
         // 1. Session Protection
         if (!sessionUser) {
@@ -147,10 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 3. Logout Handler
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                sessionStorage.removeItem('currentUser');
-                window.location.href = 'index.html';
-            });
+            logoutBtn.addEventListener('click', logout);
         }
 
         // 4. Check Profile Status
@@ -179,7 +193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Profile Form Handler ---
     const isProfilePage = window.location.pathname.includes('profile.html');
     if (isProfilePage) {
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        const sessionUser = getSessionUser();
         if (!sessionUser) {
             alert('로그인이 필요한 서비스입니다.');
             window.location.href = 'index.html';
@@ -354,7 +368,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Admin Dashboard Logic ---
     const isAdminPage = window.location.pathname.includes('admin.html');
     if (isAdminPage) {
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        const sessionUser = getSessionUser();
         if (!sessionUser || sessionUser.role !== 'admin') {
             alert('관리자 권한이 없습니다.');
             window.location.href = 'index.html';
@@ -363,10 +377,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                sessionStorage.removeItem('currentUser');
-                window.location.href = 'index.html';
-            });
+            logoutBtn.addEventListener('click', logout);
         }
 
         const loadPendingUsers = async () => {
@@ -421,7 +432,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Profile View Logic ---
     const isProfileViewPage = window.location.pathname.includes('profile_view.html');
     if (isProfileViewPage) {
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        const sessionUser = getSessionUser();
         if (!sessionUser) {
             alert('로그인이 필요한 서비스입니다.');
             window.location.href = 'index.html';
