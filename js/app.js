@@ -668,6 +668,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('vPhone').innerText = targetUser?.phone || '공개 불가';
                     successMsg.style.display = 'block';
                     matchButtons.style.display = 'none';
+                } else if (mutual && mutual.status === 'rejected') {
+                    // They rejected me
+                    btnRequest.innerText = '거절 당함';
+                    btnRequest.disabled = true;
+                    btnRequest.style.opacity = '0.5';
+                    btnRequest.style.cursor = 'not-allowed';
+                    btnReject.style.display = 'none';
                 } else if (myRequestStatus === 'pending') {
                     btnRequest.innerText = '매칭 신청 완료';
                     btnRequest.disabled = true;
@@ -699,6 +706,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Event Listeners
                 btnRequest.onclick = async () => {
                     if (myRequestStatus === 'pending') return;
+                    if (mutual && mutual.status === 'rejected') return;
                     
                     if (myRequestStatus === 'rejected') {
                         if (!confirm('다시 매칭 신청을 보내시겠습니까?')) return;
