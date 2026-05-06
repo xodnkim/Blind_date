@@ -766,8 +766,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 btnReject.onclick = async () => {
                     if (!confirm('정말 거절하시겠습니까? 다시는 볼 수 없게 됩니다.')) return;
-                    const { error } = await db.from('matches').insert([{ from_user_id: sessionUser.id, to_user_id: targetUserId, status: 'rejected' }]);
-                    if (error) alert('처리 중 오류 발생: ' + error.message);
+                    
+                    // 1. Insert/Update my rejection
+                    const { error: rejectError } = await db.from('matches').upsert([{ 
+                        from_user_id: sessionUser.id, 
+                        to_user_id: targetUserId, 
+                        status: 'rejected' 
+                    }]);
+                    
+                    // 2. Also update their request to me to 'rejected' so it's not 'pending' anymore
+                    // This prevents automatic matching if I later choose to 'Rematch'
+                    await db.from('matches')
+                        .update({ status: 'rejected' })
+                        .eq('from_user_id', targetUserId)
+                        .eq('to_user_id', sessionUser.id)
+                        .eq('status', 'pending');
+
+                    if (rejectError) alert('처리 중 오류 발생: ' + rejectError.message);
                     else {
                         alert('거절되었습니다.');
                         window.location.href = 'find_date.html';
