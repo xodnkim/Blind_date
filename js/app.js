@@ -98,8 +98,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Check if ID already exists
-            const { data: existing } = await db.from('users').select('id').eq('id', id).single();
-            if (existing) {
+            const { data: existingUsers } = await db.from('users').select('id').eq('id', id);
+            if (existingUsers && existingUsers.length > 0) {
                 alert('이미 존재하는 아이디입니다.');
                 return;
             }
@@ -117,7 +117,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             }]);
 
             if (error) {
-                alert('회원가입 처리 중 오류가 발생했습니다: ' + error.message);
+                if (error.code === '23505') {
+                    alert('이미 존재하는 아이디입니다.');
+                } else {
+                    alert('회원가입 처리 중 오류가 발생했습니다: ' + error.message);
+                }
             } else {
                 alert(`${name}님, 회원가입 요청이 전송되었습니다.\n지인 확인 후 승인해 드릴 예정입니다.`);
                 window.location.href = 'index.html';
