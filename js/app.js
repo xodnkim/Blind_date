@@ -768,22 +768,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btnReject.onclick = async () => {
                     if (!confirm('정말 거절하시겠습니까? 다시는 볼 수 없게 됩니다.')) return;
                     
-                    // 1. Insert/Update my rejection
-                    const { error: rejectError } = await db.from('matches').upsert([{ 
-                        from_user_id: sessionUser.id, 
-                        to_user_id: targetUserId, 
-                        status: 'rejected' 
-                    }]);
-                    
-                    // 2. Also update their request to me to 'rejected' so it's not 'pending' anymore
-                    // This prevents automatic matching if I later choose to 'Rematch'
-                    await db.from('matches')
+                    // Update their request to me to 'rejected'
+                    // This records my rejection and allows me to 'Rematch' later if I change my mind
+                    const { error } = await db.from('matches')
                         .update({ status: 'rejected' })
                         .eq('from_user_id', targetUserId)
                         .eq('to_user_id', sessionUser.id)
                         .eq('status', 'pending');
 
-                    if (rejectError) alert('처리 중 오류 발생: ' + rejectError.message);
+                    if (error) alert('처리 중 오류 발생: ' + error.message);
                     else {
                         alert('거절되었습니다.');
                         window.location.href = 'find_date.html';
@@ -811,9 +804,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { data: myProfile } = await db.from('profiles').select('gender').eq('user_id', sessionUser.id).single();
             const targetGender = myProfile?.gender === '남성' ? '여성' : (myProfile?.gender === '여성' ? '남성' : null);
 
-            // 2. Get IDs I've already interacted with (Requested or Rejected)
+            // 2. Get IDs I've already interacted with (Sent or Received match records)
             const { data: myMatches } = await db.from('matches').select('to_user_id').eq('from_user_id', sessionUser.id);
-            const excludedIds = myMatches?.map(m => m.to_user_id) || [];
+            const { data: theirMatches } = await db.from('matches').select('from_user_id').eq('to_user_id', sessionUser.id);
+            
+            const excludedIds = [
+                ...(myMatches?.map(m => m.to_user_id) || []),
+                ...(theirMatches?.map(m => m.from_user_id) || [])
+            ];
             excludedIds.push(sessionUser.id); // Also exclude myself
 
             // 3. Fetch all profiles
@@ -902,23 +900,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Identify Mutual Matches
             sent?.forEach(s => {
                 const isMutual = received?.some(r => r.from_user_id === s.to_user_id && r.status === 'pending') && s.status === 'pending';
-                const isRejectedByThem = received?.some(r => r.from_user_id === s.to_user_id && r.status === 'rejected');
-
+                
                 if (isMutual) {
                     matchedIds.push(s.to_user_id);
-                } else {
-                    // Include pending and rejected sent requests
-                    if (s.status === 'pending' || s.status === 'rejected') {
-                        if (isRejectedByThem || s.status === 'rejected') {
-                            s.wasRejectedByThem = true;
-                        }
-                        sentItems.push(s);
+                } else if (s.status === 'pending' || s.status === 'rejected') {
+                    // This is a request I sent
+                    if (s.status === 'rejected') {
+                        s.wasRejectedByThem = true;
                     }
+                    sentItems.push(s);
                 }
             });
 
             received?.forEach(r => {
-                // Include pending and rejected received requests
+                // This is a request I received
                 if (!matchedIds.includes(r.from_user_id) && (r.status === 'pending' || r.status === 'rejected')) {
                     const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
                     r.myResponseStatus = myResponse?.status;
