@@ -555,8 +555,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 myRequestStatus = myReq?.status;
 
                 // Check if we are mutually matched
-                const { data: mutual } = await db.from('matches').select('from_user_id').eq('from_user_id', targetUserId).eq('to_user_id', sessionUser.id).single();
-                if (myRequestStatus === 'pending' && mutual) {
+                const { data: mutual } = await db.from('matches').select('status').eq('from_user_id', targetUserId).eq('to_user_id', sessionUser.id).maybeSingle();
+                if (myRequestStatus === 'pending' && mutual && mutual.status === 'pending') {
                     isMatched = true;
                 }
             }
