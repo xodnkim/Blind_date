@@ -545,6 +545,71 @@ body {
     transition: all 0.3s;
 }
 
+/* --- Admin Table Layout --- */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+}
+
+.admin-table th, .admin-table td {
+    padding: 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-table th {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.admin-table td {
+    font-size: 0.95rem;
+    color: white;
+}
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge.pending {
+    background: rgba(255, 206, 0, 0.2);
+    color: #ffce00;
+    border: 1px solid rgba(255, 206, 0, 0.5);
+}
+
+.badge.approved {
+    background: rgba(46, 213, 115, 0.2);
+    color: #2ed573;
+    border: 1px solid rgba(46, 213, 115, 0.5);
+}
+
+.btn-small {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-small:hover {
+    filter: brightness(1.2);
+}
+
 /* --- Responsive --- */
 @media (max-width: 600px) {
     .login-container {

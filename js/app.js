@@ -190,4 +190,71 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // --- Admin Dashboard Logic ---
+    const isAdminPage = window.location.pathname.includes('admin.html');
+    if (isAdminPage) {
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        if (!sessionUser || sessionUser.role !== 'admin') {
+            alert('관리자 권한이 없습니다.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                sessionStorage.removeItem('currentUser');
+                window.location.href = 'index.html';
+            });
+        }
+
+        const loadPendingUsers = async () => {
+            const listBody = document.getElementById('adminUserList');
+            if (!listBody || !db) return;
+
+            const { data: users, error } = await db.from('users').select('*').order('created_at', { ascending: false });
+            
+            if (error) {
+                listBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--primary);">오류 발생: ${error.message}</td></tr>`;
+                return;
+            }
+
+            if (!users || users.length === 0) {
+                listBody.innerHTML = `<tr><td colspan="6" style="text-align: center;">가입 대기 중인 회원이 없습니다.</td></tr>`;
+                return;
+            }
+
+            listBody.innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td>${u.name}</td>
+                    <td>${u.phone || '-'}</td>
+                    <td>${u.referrer || '-'}</td>
+                    <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                    <td>
+                        ${u.status === 'pending' 
+                            ? `<button class="btn-small" onclick="approveUser('${u.id}')">승인하기</button>` 
+                            : `<span class="badge approved">승인완료</span>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        };
+
+        window.approveUser = async (userId) => {
+            if (!confirm(`${userId} 님의 가입을 승인하시겠습니까?`)) return;
+            
+            const { error } = await db.from('users').update({ status: 'approved' }).eq('id', userId);
+            
+            if (error) {
+                alert('승인 처리 중 오류 발생: ' + error.message);
+            } else {
+                alert('승인되었습니다.');
+                loadPendingUsers();
+            }
+        };
+
+        loadPendingUsers();
+    }
+
 });
