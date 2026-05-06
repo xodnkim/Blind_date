@@ -137,6 +137,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.href = 'index.html';
             });
         }
+
+        // 4. Check Profile Status
+        const checkProfileStatus = async () => {
+            if (!db) return;
+            const { data: profile } = await db.from('profiles').select('user_id').eq('user_id', sessionUser.id).single();
+            
+            if (profile) {
+                const title = document.getElementById('profileCardTitle');
+                const desc = document.getElementById('profileCardDesc');
+                const actionArea = document.getElementById('profileActionArea');
+                
+                if (title) title.innerText = '내 프로필 관리';
+                if (desc) desc.innerText = '등록된 프로필을 확인하거나 수정할 수 있습니다.';
+                if (actionArea) {
+                    actionArea.innerHTML = `
+                        <button class="btn-action secondary" onclick="window.location.href='profile_view.html'" style="flex: 1; padding: 12px; font-size: 0.95rem;">프로필 확인</button>
+                        <button class="btn-action" onclick="window.location.href='profile.html'" style="flex: 1; padding: 12px; font-size: 0.95rem;">프로필 수정</button>
+                    `;
+                }
+            }
+        };
+        checkProfileStatus();
     }
 
     // --- Profile Form Handler ---
@@ -150,6 +172,78 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const profileForm = document.getElementById('profileForm');
+        
+        // --- 이미지 미리보기 기능 ---
+        const setupImagePreview = (inputId) => {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const box = input.closest('.photo-box');
+                        box.style.backgroundImage = `url(${e.target.result})`;
+                        box.style.backgroundSize = 'cover';
+                        box.style.backgroundPosition = 'center';
+                        const label = box.querySelector('.photo-label');
+                        if (label) label.style.display = 'none'; // 아이콘 및 텍스트 숨기기
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        };
+        setupImagePreview('photo1');
+        setupImagePreview('photo2');
+        setupImagePreview('photo3');
+
+        // --- 기존 프로필 불러오기 (수정 모드) ---
+        const loadExistingProfile = async () => {
+            if (!db) return;
+            const { data: profile } = await db.from('profiles').select('*').eq('user_id', sessionUser.id).single();
+            if (profile) {
+                // 텍스트/숫자/셀렉트/텍스트에리어 값 채우기
+                const setVal = (id, val) => { if (document.getElementById(id) && val) document.getElementById(id).value = val; };
+                setVal('profileName', profile.name);
+                setVal('birthYear', profile.birth_year);
+                setVal('location', profile.location);
+                setVal('height', profile.height);
+                setVal('job', profile.job);
+                setVal('mbti', profile.mbti);
+                setVal('smoking', profile.smoking);
+                setVal('drinking', profile.drinking);
+                setVal('tattoo', profile.tattoo);
+                setVal('religion', profile.religion);
+                setVal('hobbies', profile.hobbies);
+                setVal('introMessage', profile.intro_message);
+                setVal('idealType', profile.ideal_type);
+
+                // 라디오 버튼 (성별) 채우기
+                if (profile.gender) {
+                    const radio = document.querySelector(`input[name="gender"][value="${profile.gender}"]`);
+                    if (radio) radio.checked = true;
+                }
+
+                // 사진 채우기
+                const setPhoto = (inputId, url) => {
+                    if (url) {
+                        const box = document.getElementById(inputId).closest('.photo-box');
+                        box.style.backgroundImage = `url(${url})`;
+                        box.style.backgroundSize = 'cover';
+                        box.style.backgroundPosition = 'center';
+                        const label = box.querySelector('.photo-label');
+                        if (label) label.style.display = 'none';
+                        // 이미 사진이 있으므로 required 해제 (새로 안 올려도 됨)
+                        document.getElementById(inputId).removeAttribute('required');
+                    }
+                };
+                setPhoto('photo1', profile.photo1);
+                setPhoto('photo2', profile.photo2);
+                setPhoto('photo3', profile.photo3);
+            }
+        };
+        loadExistingProfile();
+
         if (profileForm) {
             profileForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -297,6 +391,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         loadPendingUsers();
+    }
+
+    // --- Profile View Logic ---
+    const isProfileViewPage = window.location.pathname.includes('profile_view.html');
+    if (isProfileViewPage) {
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        if (!sessionUser) {
+            alert('로그인이 필요한 서비스입니다.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        const loadProfileView = async () => {
+            if (!db) return;
+            const { data: profile, error } = await db.from('profiles').select('*').eq('user_id', sessionUser.id).single();
+            
+            document.getElementById('loadingMsg').style.display = 'none';
+
+            if (error || !profile) {
+                alert('등록된 프로필을 찾을 수 없습니다.');
+                window.location.href = 'main.html';
+                return;
+            }
+
+            document.getElementById('profileViewCard').style.display = 'block';
+
+            // Populate data
+            if (profile.photo1) document.getElementById('vPhoto').src = profile.photo1;
+            
+            document.getElementById('vName').innerText = profile.name + (profile.gender === '여성' ? ' 🙎‍♀️' : ' 🙎‍♂️');
+            document.getElementById('vAge').innerText = profile.birth_year + '년생';
+            document.getElementById('vLocation').innerText = profile.location;
+            document.getElementById('vHeight').innerText = profile.height + 'cm';
+            
+            document.getElementById('vJob').innerText = profile.job;
+            document.getElementById('vMbti').innerText = profile.mbti;
+            document.getElementById('vSmoking').innerText = profile.smoking;
+            document.getElementById('vDrinking').innerText = profile.drinking;
+            document.getElementById('vTattoo').innerText = profile.tattoo;
+            document.getElementById('vReligion').innerText = profile.religion;
+            
+            document.getElementById('vIntro').innerText = profile.intro_message;
+            document.getElementById('vIdeal').innerText = profile.ideal_type;
+
+            // Hobbies as tags
+            const hobbiesArea = document.getElementById('vHobbiesArea');
+            if (profile.hobbies) {
+                const hobbiesList = profile.hobbies.split(',').map(h => h.trim());
+                hobbiesArea.innerHTML = hobbiesList.map(h => `<div class="view-tag">${h}</div>`).join('');
+            }
+        };
+
+        loadProfileView();
     }
 
 });

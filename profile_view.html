@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blind Date | 내 프로필 확인</title>
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .profile-view-card {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        .view-photos {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            background: #222;
+        }
+
+        .view-photo-main {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .view-content {
+            padding: 30px;
+        }
+
+        .view-header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .view-name {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .view-age-location {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .view-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 25px;
+        }
+
+        .view-tag {
+            background: rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .view-tag i { color: var(--primary); }
+
+        .view-section {
+            margin-bottom: 25px;
+        }
+
+        .view-section h4 {
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-text {
+            color: var(--text-main);
+            line-height: 1.6;
+            font-size: 0.95rem;
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <div class="bg-blob blob-1" style="top: 0; right: 0; opacity: 0.2;"></div>
+    
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="ph-fill ph-heart"></i>
+            <span>Blind Date</span>
+        </div>
+        <div class="nav-profile">
+            <a href="main.html" class="btn-icon" title="뒤로 가기" style="font-size: 1rem; margin-right: 10px; font-weight: bold; text-decoration: none;">메인으로</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        
+        <div class="profile-view-card" id="profileViewCard" style="display: none;">
+            
+            <div class="view-photos">
+                <img id="vPhoto" src="" alt="Profile Photo" class="view-photo-main">
+            </div>
+
+            <div class="view-content">
+                
+                <div class="view-header">
+                    <div class="view-name">
+                        <span id="vName">이름</span> 
+                        <span style="font-size: 1.5rem; color: var(--primary);"><i class="ph-fill ph-check-circle"></i></span>
+                    </div>
+                    <div class="view-age-location">
+                        <span id="vAge">00년생</span> · <span id="vLocation">지역</span> · <span id="vHeight">000cm</span>
+                    </div>
+                </div>
+
+                <div class="view-tags">
+                    <div class="view-tag"><i class="ph-fill ph-briefcase"></i> <span id="vJob">직업</span></div>
+                    <div class="view-tag"><i class="ph-fill ph-star"></i> <span id="vMbti">MBTI</span></div>
+                    <div class="view-tag"><i class="ph-fill ph-cigarette"></i> <span id="vSmoking">흡연</span></div>
+                    <div class="view-tag"><i class="ph-fill ph-wine"></i> <span id="vDrinking">음주</span></div>
+                    <div class="view-tag"><i class="ph-fill ph-drop"></i> <span id="vTattoo">문신</span></div>
+                    <div class="view-tag"><i class="ph-fill ph-hands-praying"></i> <span id="vReligion">종교</span></div>
+                </div>
+
+                <div class="view-section">
+                    <h4><i class="ph-fill ph-quotes"></i> 나를 표현하는 한 줄</h4>
+                    <div class="view-text" id="vIntro"></div>
+                </div>
+
+                <div class="view-section">
+                    <h4><i class="ph-fill ph-heart"></i> 나의 관심사 & 취미</h4>
+                    <div class="view-tags" id="vHobbiesArea" style="margin-bottom: 0;">
+                        <!-- Hobbies will be added here -->
+                    </div>
+                </div>
+
+                <div class="view-section">
+                    <h4><i class="ph-fill ph-sparkle"></i> 이런 사람을 만나고 싶어요</h4>
+                    <div class="view-text" id="vIdeal"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="loadingMsg" style="text-align: center; padding: 50px; font-size: 1.2rem;">프로필을 불러오는 중입니다...</div>
+
+    </main>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase_config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
