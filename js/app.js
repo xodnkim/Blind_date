@@ -488,10 +488,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('vAge').innerText = profile.birth_year + '년생';
             document.getElementById('vLocation').innerText = profile.location;
             document.getElementById('vHeight').innerText = profile.height + 'cm';
+            document.getElementById('vBodyTypeTop').innerText = profile.body_type || '보통';
             
             document.getElementById('vJob').innerText = profile.job + (profile.job_location ? ` (${profile.job_location})` : '');
             document.getElementById('vMbti').innerText = profile.mbti;
-            document.getElementById('vBodyType').innerText = profile.body_type || '보통';
             document.getElementById('vSmoking').innerText = profile.smoking;
             document.getElementById('vDrinking').innerText = profile.drinking;
             document.getElementById('vTattoo').innerText = profile.tattoo;
