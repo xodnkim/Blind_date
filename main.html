@@ -39,39 +39,34 @@
 
         <!-- Feature Cards Grid -->
         <div class="dashboard-grid">
-            <!-- 1. Find Match Card -->
-            <div class="card find-match-card" style="background: linear-gradient(135.44deg, #FF4D6D 0%, #FF8A5B 100%); cursor: pointer; margin-bottom: 20px;" onclick="window.location.href='find_date.html'">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #FF4D6D;">
-                        <i class="ph-fill ph-magnifying-glass" style="font-size: 1.5rem;"></i>
-                    </div>
-                    <div>
-                        <h3 style="margin: 0; color: white;">인연 찾으러 가기</h3>
-                        <p style="margin: 5px 0 0; color: rgba(255,255,255,0.8); font-size: 0.85rem;">나와 딱 맞는 새로운 인연을 탐색해 보세요.</p>
-                    </div>
+            <!-- 1. 인연 탐색 영역 -->
+            <div class="feature-card primary-card" style="background: linear-gradient(135deg, #FF4D6D 0%, #FF8A5B 100%); border: none; cursor: pointer;" onclick="window.location.href='find_date.html'">
+                <div class="card-icon" style="background: white; color: #FF4D6D;"><i class="ph-fill ph-magnifying-glass"></i></div>
+                <div class="card-content">
+                    <h3 style="color: white;">인연 찾으러 가기</h3>
+                    <p style="color: rgba(255,255,255,0.85);">나와 딱 맞는 새로운 인연을 탐색해 보세요.</p>
                 </div>
             </div>
 
-            <!-- 2. Profile Management Card -->
-            <div class="feature-card primary-card">
-                <div class="card-icon"><i class="ph-fill ph-user-circle"></i></div>
-                <div class="card-content">
-                    <h3 id="profileCardTitle">내 프로필 등록</h3>
-                    <p id="profileCardDesc">사진, 취미, 이상형 등 나의 매력을 뽐낼 수 있는 프로필을 완성해보세요.</p>
-                </div>
-                <div id="profileActionArea" style="display: flex; gap: 10px; width: 100%;">
-                    <button class="btn-action" onclick="window.location.href='profile.html'">프로필 등록하기</button>
-                </div>
-                <!-- 3. Match Management Card -->
-            <div class="feature-card" style="margin-top: 20px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;" onclick="window.location.href='match_status.html'">
-                <div class="card-icon" style="background: rgba(255,255,255,0.1); color: white;"><i class="ph-fill ph-heart-break"></i></div>
+            <div class="feature-card" style="cursor: pointer; border: 1px solid rgba(255,255,255,0.1);" onclick="window.location.href='match_status.html'">
+                <div class="card-icon" style="background: rgba(255,77,109,0.1); color: #FF4D6D;"><i class="ph-fill ph-heart-straight"></i></div>
                 <div class="card-content">
                     <h3>매칭 신청 관리</h3>
                     <p>내가 보낸 신청과 받은 신청 내역을 확인하세요.</p>
                 </div>
             </div>
-        </div>
 
+            <!-- 2. 프로필 관리 영역 -->
+            <div class="feature-card" style="margin-top: 10px;">
+                <div class="card-icon"><i class="ph-fill ph-user-circle"></i></div>
+                <div class="card-content">
+                    <h3 id="profileCardTitle">내 프로필 관리</h3>
+                    <p id="profileCardDesc">나의 매력을 보여줄 수 있는 프로필을 관리하세요.</p>
+                </div>
+                <div id="profileActionArea" style="display: flex; gap: 10px; width: 100%;">
+                    <button class="btn-action" onclick="window.location.href='profile.html'">프로필 등록하기</button>
+                </div>
+            </div>
         </div>
 
     </main>
