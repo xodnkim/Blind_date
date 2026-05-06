@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blind Date | 당신의 운명적인 인연을 찾아서</title>
-    <meta name="description" content="고급스러운 프리미엄 블라인드 데이트 서비스. 조건보다는 취향, 외모보다는 깊이 있는 대화로 시작하세요.">
+    <title>Blind Date | 우리만의 아지트</title>
+    <meta name="description" content="친구들과 함께 즐기는 트렌디한 블라인드 데이트.">
     
     <!-- Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -12,57 +12,50 @@
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <div class="logo">Blind Date</div>
-            <nav>
-                <ul>
-                    <li><a href="#about">서비스 소개</a></li>
-                    <li><a href="#story">성공 스토리</a></li>
-                    <li><a href="#premium">프리미엄</a></li>
-                </ul>
-            </nav>
-            <div class="header-btns">
-                <a href="#" class="btn btn-outline" style="padding: 10px 25px;">로그인</a>
+    <!-- Background Trendy Elements -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="login-container">
+        <div class="login-box">
+            <div class="brand">
+                <div class="logo-icon"><i class="ph-fill ph-heart"></i></div>
+                <h1 class="logo">Blind <span>Date</span></h1>
             </div>
-        </header>
 
-        <main>
-            <section class="hero">
-                <div class="hero-content">
-                    <h1 class="hero-title">
-                        가장 <span>비밀스럽고</span><br>
-                        완벽한 만남
-                    </h1>
-                    <p class="hero-desc">
-                        조건에 맞춘 기계적인 매칭이 아닌,<br>
-                        당신의 가치관과 취향을 분석하여 깊이 있는 연결을 만들어냅니다.
-                    </p>
-                    <div class="cta-group">
-                        <a href="signup.html" class="btn btn-primary">지금 시작하기</a>
-                        <a href="#about" class="btn btn-outline">더 알아보기</a>
-                    </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">아이디</label>
+                    <input type="text" id="username" placeholder="아이디를 입력하세요" required>
                 </div>
 
-                <div class="hero-visual">
-                    <div class="main-card">
-                        <div class="card-img">
-                            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Matching Profile">
-                        </div>
-                        <div class="card-info">
-                            <h3>오늘의 추천 인연</h3>
-                            <p>27세, 건축가, 클래식 음악을 좋아하는 분</p>
-                        </div>
-                        
-                        <!-- Floating Micro-animations -->
-                        <i class="ph-fill ph-heart floating-heart" style="top: -20px; right: 20px; font-size: 2rem;"></i>
-                        <i class="ph-fill ph-sparkle floating-heart" style="bottom: 50px; left: -10px; color: var(--accent-gold); font-size: 1.5rem; animation-delay: 0.5s;"></i>
-                    </div>
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <input type="password" id="password" placeholder="비밀번호를 입력하세요" required>
                 </div>
-            </section>
-        </main>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe">
+                        <span>자동 로그인</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-login">로그인</button>
+            </form>
+
+            <div class="signup-link">
+                처음이신가요? <a href="signup.html">회원가입 요청하기</a>
+            </div>
+        </div>
+        
+        <footer class="footer-simple">
+            &copy; 2026 Blind Date.
+        </footer>
     </div>
 
     <script src="js/app.js"></script>
 </body>
 </html>
+

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blind Date | 회원가입 요청</title>
+    <meta name="description" content="친구들과 함께 즐기는 트렌디한 블라인드 데이트 가입하기.">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Background Trendy Elements -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="login-container">
+        <div class="login-box" style="max-width: 500px;">
+            <div class="brand">
+                <div class="logo-icon"><i class="ph-fill ph-user-plus"></i></div>
+                <h1 class="logo">Join <span>Blind Date</span></h1>
+            </div>
+
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="signupId">아이디</label>
+                    <input type="text" id="signupId" placeholder="영문/숫자 조합 12자 이내" maxlength="12" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="signupPassword">비밀번호</label>
+                    <input type="password" id="signupPassword" placeholder="비밀번호를 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="signupName">이름</label>
+                    <input type="text" id="signupName" placeholder="이름을 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="signupEmail">이메일</label>
+                    <input type="email" id="signupEmail" placeholder="이메일을 입력하세요" required>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="termsCheck" required>
+                        <span>개인정보 수집 및 이용에 동의합니다.</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-login">회원가입 요청하기</button>
+            </form>
+
+            <div class="signup-link">
+                이미 회원이신가요? <a href="index.html">로그인하러 가기</a>
+            </div>
+        </div>
+        
+        <footer class="footer-simple">
+            &copy; 2026 Blind Date.
+        </footer>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
