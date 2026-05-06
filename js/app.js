@@ -842,7 +842,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Identify Mutual Matches
             sent?.forEach(s => {
                 const isMutual = received?.some(r => r.from_user_id === s.to_user_id && s.status === 'pending');
-                if (isMutual) {
+                if (isMutual && s.status === 'pending') {
                     matchedIds.push(s.to_user_id);
                 } else if (s.status === 'pending') {
                     sentItems.push(s);
@@ -850,7 +850,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             received?.forEach(r => {
-                if (!matchedIds.includes(r.from_user_id) && r.status === 'pending') {
+                // Check if I have already sent a 'rejected' response to this person
+                const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
+                
+                if (!matchedIds.includes(r.from_user_id) && r.status === 'pending' && (!myResponse || myResponse.status !== 'rejected')) {
                     receivedItems.push(r);
                 }
             });
