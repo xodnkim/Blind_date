@@ -226,22 +226,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const lastViewed = localStorage.getItem(`lastViewedMatches_${sessionUser.id}`);
             if (!lastViewed) return;
+            const lvTime = new Date(lastViewed);
             
+            // Fetch all records where the user is involved and were created recently
+            // This covers new requests and re-inserts for rejections/rematches
             const { data: news } = await db.from('matches')
                 .select('*')
                 .or(`to_user_id.eq.${sessionUser.id},from_user_id.eq.${sessionUser.id}`)
-                .or(`created_at.gt.${lastViewed},updated_at.gt.${lastViewed}`);
+                .gt('created_at', lastViewed);
             
             if (news && news.length > 0) {
-                // Filter news based on user's rules
                 const hasImportantNews = news.some(n => {
-                    // 1. New request received
+                    const cTime = new Date(n.created_at);
+                    if (cTime <= lvTime) return false;
+
+                    // 1. New request received TO me
                     if (n.to_user_id === sessionUser.id && n.status === 'pending') return true;
-                    // 2. Sent request rejected
+                    // 2. Sent request REJECTED BY them
                     if (n.from_user_id === sessionUser.id && n.status === 'rejected') return true;
-                    // 3. Match Success (covered by pending to_user_id for both in a sense, but explicit check)
-                    // If a match record exists and is fresh, it's news
-                    return false; // The logic above covers rejections and new requests.
+                    // 3. New match (either person gets the notification)
+                    return false; 
                 });
 
                 if (hasImportantNews) {
@@ -754,8 +758,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     if (myRequestStatus === 'rejected') {
                         if (!confirm('정말 다시 매칭 신청을 보내시겠습니까?')) return;
+                        
+                        // 1. Delete my old rejected request
+                        await db.from('matches')
+                            .delete()
+                            .eq('from_user_id', sessionUser.id)
+                            .eq('to_user_id', targetUserId);
+                            
+                        // 2. Insert as a fresh pending request
                         const { error } = await db.from('matches')
-                            .upsert([{ 
+                            .insert([{ 
                                 from_user_id: sessionUser.id, 
                                 to_user_id: targetUserId, 
                                 status: 'pending' 
