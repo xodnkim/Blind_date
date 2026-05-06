@@ -501,8 +501,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Hobbies as tags
             const hobbiesArea = document.getElementById('vHobbiesArea');
             if (profile.hobbies) {
-                const hobbiesList = profile.hobbies.split(',').map(h => h.trim());
-                hobbiesArea.innerHTML = hobbiesList.map(h => `<div class="view-tag">${h}</div>`).join('');
+                // Split by comma or space, remove empty strings
+                const hobbiesList = profile.hobbies.split(/[\s,]+/).filter(h => h.trim() !== '');
+                hobbiesArea.innerHTML = hobbiesList.map(h => {
+                    const cleanH = h.replace(/^#/, ''); // Remove existing # if user typed it
+                    return `<div class="view-tag">#${cleanH}</div>`;
+                }).join('');
             }
         };
 
