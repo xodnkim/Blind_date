@@ -232,6 +232,174 @@ body {
     color: rgba(255, 255, 255, 0.2);
 }
 
+/* --- Dashboard Layout --- */
+.dashboard-body {
+    align-items: flex-start;
+    padding: 0;
+}
+
+.navbar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 5%;
+    background: rgba(10, 9, 16, 0.6);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.nav-brand i {
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+.nav-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-greeting {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.btn-icon:hover {
+    color: var(--primary);
+}
+
+.main-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 5%;
+    z-index: 10;
+}
+
+.dashboard-header {
+    margin-bottom: 40px;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.feature-card {
+    background: var(--panel-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px -10px rgba(0,0,0,0.5);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.primary-card {
+    background: linear-gradient(145deg, rgba(255, 77, 109, 0.1), rgba(114, 9, 183, 0.1));
+    border-color: rgba(255, 77, 109, 0.3);
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+.primary-card .card-icon {
+    color: #ff9ff3;
+}
+
+.card-content h3 {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+}
+
+.card-content p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 30px;
+    flex-grow: 1;
+}
+
+.btn-action {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.3s;
+}
+
+.btn-action.secondary {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
+}
+
+.btn-action:hover {
+    filter: brightness(1.2);
+}
+
+.card-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--primary);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px var(--primary-glow);
+}
+
 /* --- Responsive --- */
 @media (max-width: 600px) {
     .login-container {

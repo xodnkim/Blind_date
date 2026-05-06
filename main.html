@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blind Date | 메인 대시보드</title>
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+
+    <!-- Background Trendy Elements (Slightly adjusted for main page) -->
+    <div class="bg-blob blob-1" style="top: -20%; right: -10%; opacity: 0.3;"></div>
+    <div class="bg-blob blob-2" style="bottom: -20%; left: -10%; opacity: 0.3;"></div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="ph-fill ph-heart"></i>
+            <span>Blind Date</span>
+        </div>
+        <div class="nav-profile">
+            <span id="welcomeName" class="user-greeting">사용자님</span>
+            <button id="logoutBtn" class="btn-icon" title="로그아웃"><i class="ph ph-sign-out"></i></button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        
+        <!-- Welcome Section -->
+        <header class="dashboard-header">
+            <h1 class="page-title">오늘의 인연을 확인해보세요 ✨</h1>
+            <p class="page-subtitle">지인이 추천하는 믿을 수 있는 블라인드 데이트</p>
+        </header>
+
+        <!-- Feature Cards Grid -->
+        <div class="card-grid">
+            
+            <!-- Match Card (Primary Action) -->
+            <div class="feature-card primary-card">
+                <div class="card-icon"><i class="ph-fill ph-sparkle"></i></div>
+                <div class="card-content">
+                    <h3>오늘의 매칭</h3>
+                    <p>나와 가치관이 맞는 새로운 인연을 소개받으세요.</p>
+                </div>
+                <button class="btn-action">매칭 확인하기</button>
+                <!-- Status badge (e.g., '매칭 대기중', '새로운 프로필 도착') -->
+                <div class="card-badge">New 1건</div>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="feature-card">
+                <div class="card-icon"><i class="ph-fill ph-user-circle"></i></div>
+                <div class="card-content">
+                    <h3>내 프로필</h3>
+                    <p>나의 매력을 어필할 수 있는 프로필을 완성해보세요.</p>
+                </div>
+                <button class="btn-action secondary">프로필 관리</button>
+            </div>
+
+            <!-- Invite/Referral Card -->
+            <div class="feature-card">
+                <div class="card-icon"><i class="ph-fill ph-users-three"></i></div>
+                <div class="card-content">
+                    <h3>지인 초대</h3>
+                    <p>좋은 사람을 소개하고 매칭 확률을 높여보세요.</p>
+                </div>
+                <button class="btn-action secondary">초대 링크 복사</button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase_config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

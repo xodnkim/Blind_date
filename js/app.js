@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 1. Check Hardcoded Admin
             if (idInput === ADMIN_ID && pwInput === ADMIN_PW) {
                 alert("관리자 계정으로 로그인합니다.");
-                sessionStorage.setItem('currentUser', JSON.stringify({ id: ADMIN_ID, role: 'admin' }));
-                window.location.href = 'index.html'; 
+                sessionStorage.setItem('currentUser', JSON.stringify({ id: ADMIN_ID, name: '관리자', role: 'admin' }));
+                window.location.href = 'main.html'; 
                 return;
             }
 
@@ -51,8 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             alert(`${user.name}님, 환영합니다!`);
             sessionStorage.setItem('currentUser', JSON.stringify(user));
-            // Redirect to main page (to be created)
-            // window.location.href = 'main.html';
+            window.location.href = 'main.html';
         });
     }
 
@@ -93,6 +92,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.href = 'index.html';
             }
         });
+    }
+
+    // --- Main Dashboard Logic ---
+    const isMainPage = window.location.pathname.includes('main.html');
+    
+    if (isMainPage) {
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        
+        // 1. Session Protection
+        if (!sessionUser) {
+            alert('로그인이 필요한 서비스입니다.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        // 2. Update Welcome UI
+        const welcomeNameEl = document.getElementById('welcomeName');
+        if (welcomeNameEl) {
+            // Include a crown icon if admin, otherwise just the name
+            const icon = sessionUser.role === 'admin' ? '<i class="ph-fill ph-crown" style="color: #ffce00; margin-right: 4px;"></i>' : '';
+            welcomeNameEl.innerHTML = icon + sessionUser.name + '님';
+        }
+
+        // 3. Logout Handler
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                sessionStorage.removeItem('currentUser');
+                window.location.href = 'index.html';
+            });
+        }
     }
 
 });
