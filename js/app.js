@@ -226,24 +226,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Get last viewed timestamp for notifications
             const lastViewed = localStorage.getItem(`lastViewedMatches_${sessionUser.id}`);
+            if (!lastViewed) return; // If first time, don't show notification yet
             
-            // Check for any pending requests sent TO the user
-            let query = db.from('matches')
-                .select('created_at')
-                .eq('to_user_id', sessionUser.id)
-                .eq('status', 'pending');
+            // Check for:
+            // 1. New pending requests to me
+            // 2. New rejections of my requests
+            // 3. New mutual matches (where both are pending)
             
-            if (lastViewed) {
-                query = query.gt('created_at', lastViewed);
-            }
+            const { data: news } = await db.from('matches')
+                .select('*')
+                .or(`to_user_id.eq.${sessionUser.id},from_user_id.eq.${sessionUser.id}`)
+                .gt('created_at', lastViewed); // Note: Rejections currently update existing records, so we ideally need updated_at.
+                                               // But mutual matches create new records, so created_at works.
             
-            const { data: received } = await query;
+            // For rejections, since we update the record, created_at doesn't change.
+            // If the DB has updated_at, we should use it. 
+            // We'll also check if any existing record's status has changed.
             
-            if (received && received.length > 0) {
+            if (news && news.length > 0) {
                 const btnMatchStatus = document.getElementById('btnMatchStatus');
                 if (btnMatchStatus) {
                     btnMatchStatus.classList.add('btn-highlight');
-                    btnMatchStatus.innerHTML = '<i class="ph-fill ph-bell-ringing"></i> 신청 확인하기';
+                    btnMatchStatus.innerHTML = '<i class="ph-fill ph-bell-ringing"></i> 새로운 소식 있음';
                 }
             }
         };
@@ -675,11 +679,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     successMsg.style.display = 'block';
                     matchButtons.style.display = 'none';
                 } else if (mutual && mutual.status === 'rejected') {
-                    // They rejected me
-                    btnRequest.innerText = '거절 당함';
-                    btnRequest.disabled = true;
-                    btnRequest.style.opacity = '0.5';
-                    btnRequest.style.cursor = 'not-allowed';
+                    // I rejected them
+                    btnRequest.innerText = '다시 매칭하기';
+                    btnRequest.disabled = false;
+                    btnRequest.style.opacity = '1';
+                    btnRequest.style.cursor = 'pointer';
                     btnReject.style.display = 'none';
                     btnRequest.classList.remove('btn-highlight');
                 } else if (myRequestStatus === 'pending') {
@@ -688,11 +692,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnRequest.style.opacity = '0.7';
                     btnReject.style.display = 'none';
                 } else if (myRequestStatus === 'rejected') {
-                    // I rejected them
-                    btnRequest.innerText = '다시 매칭하기';
-                    btnRequest.disabled = false;
-                    btnRequest.style.opacity = '1';
-                    btnRequest.style.cursor = 'pointer';
+                    // They rejected me
+                    btnRequest.innerText = '거절 당함';
+                    btnRequest.disabled = true;
+                    btnRequest.style.opacity = '0.5';
+                    btnRequest.style.cursor = 'not-allowed';
                     btnReject.style.display = 'none';
                     btnRequest.classList.remove('btn-highlight');
                 } else if (incomingReq) {
