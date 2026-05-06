@@ -209,11 +209,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setVal('location', profile.location);
                 setVal('height', profile.height);
                 setVal('job', profile.job);
+                setVal('jobLocation', profile.job_location);
                 setVal('mbti', profile.mbti);
                 setVal('smoking', profile.smoking);
                 setVal('drinking', profile.drinking);
                 setVal('tattoo', profile.tattoo);
                 setVal('religion', profile.religion);
+                setVal('longDistance', profile.long_distance);
                 setVal('hobbies', profile.hobbies);
                 setVal('introMessage', profile.intro_message);
                 setVal('idealType', profile.ideal_type);
@@ -256,11 +258,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     location: document.getElementById('location').value,
                     height: document.getElementById('height').value,
                     job: document.getElementById('job').value,
+                    job_location: document.getElementById('jobLocation').value,
                     mbti: document.getElementById('mbti').value,
                     smoking: document.getElementById('smoking').value,
                     drinking: document.getElementById('drinking').value,
                     tattoo: document.getElementById('tattoo').value,
                     religion: document.getElementById('religion').value,
+                    long_distance: document.getElementById('longDistance').value,
                     hobbies: document.getElementById('hobbies').value,
                     intro_message: document.getElementById('introMessage').value,
                     ideal_type: document.getElementById('idealType').value,
@@ -418,19 +422,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('profileViewCard').style.display = 'block';
 
             // Populate data
-            if (profile.photo1) document.getElementById('vPhoto').src = profile.photo1;
+            if (profile.photo1) {
+                document.getElementById('vPhoto').src = profile.photo1;
+            } else {
+                // If no photo exists, hide the image to prevent broken icon
+                document.getElementById('vPhoto').style.display = 'none';
+                document.querySelector('.view-photos').style.display = 'flex';
+                document.querySelector('.view-photos').style.alignItems = 'center';
+                document.querySelector('.view-photos').style.justifyContent = 'center';
+                document.querySelector('.view-photos').innerHTML = '<span style="color: #666;">등록된 사진이 없습니다.</span>';
+            }
             
             document.getElementById('vName').innerText = profile.name + (profile.gender === '여성' ? ' 🙎‍♀️' : ' 🙎‍♂️');
             document.getElementById('vAge').innerText = profile.birth_year + '년생';
             document.getElementById('vLocation').innerText = profile.location;
             document.getElementById('vHeight').innerText = profile.height + 'cm';
             
-            document.getElementById('vJob').innerText = profile.job;
+            document.getElementById('vJob').innerText = profile.job + (profile.job_location ? ` (${profile.job_location})` : '');
             document.getElementById('vMbti').innerText = profile.mbti;
             document.getElementById('vSmoking').innerText = profile.smoking;
             document.getElementById('vDrinking').innerText = profile.drinking;
             document.getElementById('vTattoo').innerText = profile.tattoo;
             document.getElementById('vReligion').innerText = profile.religion;
+            document.getElementById('vLongDistance').innerText = profile.long_distance || '장거리 무관';
             
             document.getElementById('vIntro').innerText = profile.intro_message;
             document.getElementById('vIdeal').innerText = profile.ideal_type;
