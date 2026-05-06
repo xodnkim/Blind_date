@@ -224,11 +224,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const checkNotifications = async () => {
             if (!db || !sessionUser) return;
             
+            // Get last viewed timestamp for notifications
+            const lastViewed = localStorage.getItem(`lastViewedMatches_${sessionUser.id}`);
+            
             // Check for any pending requests sent TO the user
-            const { data: received } = await db.from('matches')
-                .select('from_user_id')
+            let query = db.from('matches')
+                .select('created_at')
                 .eq('to_user_id', sessionUser.id)
                 .eq('status', 'pending');
+            
+            if (lastViewed) {
+                query = query.gt('created_at', lastViewed);
+            }
+            
+            const { data: received } = await query;
             
             if (received && received.length > 0) {
                 const btnMatchStatus = document.getElementById('btnMatchStatus');
@@ -617,6 +626,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const btnRequest = document.getElementById('btnRequestMatch');
                 const btnReject = document.getElementById('btnReject');
 
+                // Check if they sent a request to me
+                const { data: incomingReq } = await db.from('matches')
+                    .select('id')
+                    .eq('from_user_id', targetUserId)
+                    .eq('to_user_id', sessionUser.id)
+                    .eq('status', 'pending')
+                    .maybeSingle();
+
                 if (isMatched) {
                     // Reveal Phone Number
                     const { data: targetUser } = await db.from('users').select('phone').eq('id', targetUserId).single();
@@ -631,16 +648,47 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnRequest.innerText = '거절됨';
                     btnRequest.disabled = true;
                     btnReject.style.display = 'none';
+                } else if (incomingReq) {
+                    // Received a request but haven't responded
+                    btnRequest.innerText = '매칭 수락하기';
+                    btnRequest.classList.add('btn-highlight');
+                    btnReject.innerText = '거절하기';
                 }
+
+                const showMatchSuccess = () => {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'match-overlay';
+                    overlay.innerHTML = `
+                        <div class="match-heart"><i class="ph-fill ph-heart"></i></div>
+                        <div class="match-text">매칭이 성사되었습니다!</div>
+                        <p style="color: white; margin-top: 20px; font-size: 1.1rem;">상대방의 연락처를 확인해보세요.</p>
+                        <button class="btn-action" style="width: auto; padding: 12px 40px; margin-top: 30px;" onclick="window.location.reload()">확인</button>
+                    `;
+                    document.body.appendChild(overlay);
+                };
 
                 // Event Listeners
                 btnRequest.onclick = async () => {
-                    if (myRequestStatus) return;
+                    if (myRequestStatus === 'pending' || myRequestStatus === 'rejected') return;
+                    
                     const { error } = await db.from('matches').insert([{ from_user_id: sessionUser.id, to_user_id: targetUserId, status: 'pending' }]);
+                    
                     if (error) alert('신청 중 오류 발생: ' + error.message);
                     else {
-                        alert('매칭 신청을 보냈습니다! 상대방도 신청하면 매칭이 완료됩니다.');
-                        window.location.reload();
+                        // Check if it's now a match
+                        const { data: mutual } = await db.from('matches')
+                            .select('id')
+                            .eq('from_user_id', targetUserId)
+                            .eq('to_user_id', sessionUser.id)
+                            .eq('status', 'pending')
+                            .maybeSingle();
+                        
+                        if (mutual) {
+                            showMatchSuccess();
+                        } else {
+                            alert('매칭 신청을 보냈습니다! 상대방도 신청하면 매칭이 완료됩니다.');
+                            window.location.reload();
+                        }
                     }
                 };
 
@@ -735,7 +783,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const loadMatchStatus = async () => {
-            if (!db) return;
+            if (!db || !sessionUser) return;
+
+            // Save view timestamp to clear notifications
+            localStorage.setItem(`lastViewedMatches_${sessionUser.id}`, new Date().toISOString());
 
             // 1. Fetch Sent Requests
             const { data: sent } = await db.from('matches').select('to_user_id, status').eq('from_user_id', sessionUser.id);
