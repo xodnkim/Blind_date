@@ -206,6 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const setVal = (id, val) => { if (document.getElementById(id) && val) document.getElementById(id).value = val; };
                 setVal('profileName', profile.name);
                 setVal('birthYear', profile.birth_year);
+                setVal('bodyType', profile.body_type);
                 setVal('location', profile.location);
                 setVal('height', profile.height);
                 setVal('job', profile.job);
@@ -255,6 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     name: document.getElementById('profileName').value,
                     gender: document.querySelector('input[name="gender"]:checked')?.value || '',
                     birth_year: document.getElementById('birthYear').value,
+                    body_type: document.getElementById('bodyType').value,
                     location: document.getElementById('location').value,
                     height: document.getElementById('height').value,
                     job: document.getElementById('job').value,
@@ -489,6 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             document.getElementById('vJob').innerText = profile.job + (profile.job_location ? ` (${profile.job_location})` : '');
             document.getElementById('vMbti').innerText = profile.mbti;
+            document.getElementById('vBodyType').innerText = profile.body_type || '보통';
             document.getElementById('vSmoking').innerText = profile.smoking;
             document.getElementById('vDrinking').innerText = profile.drinking;
             document.getElementById('vTattoo').innerText = profile.tattoo;
