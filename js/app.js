@@ -617,7 +617,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updatePhotoView();
 
             // 4. Fill Information
-            document.getElementById('vName').innerText = profile.name + (profile.gender === '여성' ? ' 🙎‍♀️' : ' 🙎‍♂️');
+            document.getElementById('vName').innerText = profile.name + (profile.gender === '여성' ? ' ♀' : ' ♂');
             document.getElementById('vAge').innerText = profile.birth_year + '년생';
             document.getElementById('vLocation').innerText = profile.location;
             document.getElementById('vHeight').innerText = profile.height + 'cm';
@@ -675,20 +675,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnRequest.style.opacity = '0.5';
                     btnRequest.style.cursor = 'not-allowed';
                     btnReject.style.display = 'none';
+                    btnRequest.classList.remove('btn-highlight');
                 } else if (myRequestStatus === 'pending') {
                     btnRequest.innerText = '매칭 신청 완료';
                     btnRequest.disabled = true;
                     btnRequest.style.opacity = '0.7';
+                    btnReject.style.display = 'none';
                 } else if (myRequestStatus === 'rejected') {
+                    // I rejected them
                     btnRequest.innerText = '다시 매칭하기';
                     btnRequest.disabled = false;
                     btnRequest.style.opacity = '1';
+                    btnRequest.style.cursor = 'pointer';
                     btnReject.style.display = 'none';
+                    btnRequest.classList.remove('btn-highlight');
                 } else if (incomingReq) {
                     // Received a request but haven't responded
                     btnRequest.innerText = '매칭 수락하기';
                     btnRequest.classList.add('btn-highlight');
                     btnReject.innerText = '거절하기';
+                    btnReject.style.display = 'block';
                 }
 
                 const showMatchSuccess = () => {
