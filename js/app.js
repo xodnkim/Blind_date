@@ -677,6 +677,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('vPhone').innerText = targetUser?.phone || '공개 불가';
                     successMsg.style.display = 'block';
                     matchButtons.style.display = 'none';
+                } else if (incomingReq) {
+                    // Received a request - This should have priority (even if I was previously rejected)
+                    btnRequest.innerText = '매칭 수락하기';
+                    btnRequest.classList.add('btn-highlight');
+                    btnReject.innerText = '거절하기';
+                    btnReject.style.display = 'block';
                 } else if (mutual && mutual.status === 'rejected') {
                     // I rejected them
                     btnRequest.innerText = '다시 매칭하기';
@@ -698,12 +704,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnRequest.style.cursor = 'not-allowed';
                     btnReject.style.display = 'none';
                     btnRequest.classList.remove('btn-highlight');
-                } else if (incomingReq) {
-                    // Received a request but haven't responded
-                    btnRequest.innerText = '매칭 수락하기';
-                    btnRequest.classList.add('btn-highlight');
-                    btnReject.innerText = '거절하기';
-                    btnReject.style.display = 'block';
                 }
 
                 const showMatchSuccess = () => {
@@ -720,19 +720,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Event Listeners
                 btnRequest.onclick = async () => {
-                    console.log('Button Clicked. Status:', myRequestStatus);
                     if (myRequestStatus === 'pending') return;
-                    if (mutual && mutual.status === 'rejected') {
-                        alert('상대방이 거절한 상태라 신청할 수 없습니다.');
-                        return;
-                    }
                     
                     if (myRequestStatus === 'rejected') {
                         if (!confirm('정말 다시 매칭 신청을 보내시겠습니까?')) return;
+                        // Use upsert to reset the status to pending
                         const { error } = await db.from('matches')
-                            .update({ status: 'pending' })
-                            .eq('from_user_id', sessionUser.id)
-                            .eq('to_user_id', targetUserId);
+                            .upsert([{ 
+                                from_user_id: sessionUser.id, 
+                                to_user_id: targetUserId, 
+                                status: 'pending' 
+                            }]);
                             
                         if (error) {
                             alert('신청 중 오류 발생: ' + error.message);
@@ -771,13 +769,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btnReject.onclick = async () => {
                     if (!confirm('정말 거절하시겠습니까? 다시는 볼 수 없게 됩니다.')) return;
                     
-                    // Update their request to me to 'rejected'
-                    // This records my rejection and allows me to 'Rematch' later if I change my mind
-                    const { error } = await db.from('matches')
-                        .update({ status: 'rejected' })
+                    // To ensure the other person gets a NEW notification with a fresh timestamp:
+                    // 1. Delete their existing pending request to me
+                    await db.from('matches')
+                        .delete()
                         .eq('from_user_id', targetUserId)
-                        .eq('to_user_id', sessionUser.id)
-                        .eq('status', 'pending');
+                        .eq('to_user_id', sessionUser.id);
+                    
+                    // 2. Insert a NEW record with status 'rejected'
+                    // This creates a fresh created_at timestamp for notifications
+                    const { error } = await db.from('matches')
+                        .insert([{ 
+                            from_user_id: targetUserId, 
+                            to_user_id: sessionUser.id, 
+                            status: 'rejected' 
+                        }]);
 
                     if (error) alert('처리 중 오류 발생: ' + error.message);
                     else {
