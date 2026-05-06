@@ -178,13 +178,55 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
-                const { error } = await db.from('profiles').upsert(profileData);
+                // --- UI 비활성화 및 로딩 표시 ---
+                const submitBtn = profileForm.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerText;
+                submitBtn.innerText = '사진 업로드 및 저장 중...';
+                submitBtn.disabled = true;
 
-                if (error) {
-                    alert('프로필 저장 중 오류가 발생했습니다: ' + error.message);
-                } else {
-                    alert('프로필이 성공적으로 저장되었습니다!');
-                    window.location.href = 'main.html';
+                // --- 파일 업로드 함수 ---
+                const uploadPhoto = async (fileInputId) => {
+                    const fileInput = document.getElementById(fileInputId);
+                    if (!fileInput || !fileInput.files || fileInput.files.length === 0) return null;
+                    
+                    const file = fileInput.files[0];
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${sessionUser.id}_${fileInputId}_${Date.now()}.${fileExt}`;
+                    const filePath = `${sessionUser.id}/${fileName}`;
+                    
+                    const { error: uploadError } = await db.storage.from('profile_photos').upload(filePath, file);
+                    if (uploadError) {
+                        console.error(`Error uploading ${fileInputId}:`, uploadError.message);
+                        return null; // 업로드 실패해도 계속 진행 (또는 에러 처리 가능)
+                    }
+                    
+                    const { data } = db.storage.from('profile_photos').getPublicUrl(filePath);
+                    return data.publicUrl;
+                };
+
+                // 순차적으로 업로드 진행
+                try {
+                    const url1 = await uploadPhoto('photo1');
+                    const url2 = await uploadPhoto('photo2');
+                    const url3 = await uploadPhoto('photo3');
+
+                    if (url1) profileData.photo1 = url1;
+                    if (url2) profileData.photo2 = url2;
+                    if (url3) profileData.photo3 = url3;
+
+                    const { error } = await db.from('profiles').upsert(profileData);
+
+                    if (error) {
+                        alert('프로필 저장 중 오류가 발생했습니다: ' + error.message);
+                    } else {
+                        alert('프로필과 사진이 성공적으로 저장되었습니다!');
+                        window.location.href = 'main.html';
+                    }
+                } catch (e) {
+                    alert('처리 중 오류가 발생했습니다: ' + e.message);
+                } finally {
+                    submitBtn.innerText = originalBtnText;
+                    submitBtn.disabled = false;
                 }
             });
         }
