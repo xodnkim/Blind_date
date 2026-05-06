@@ -224,26 +224,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const checkNotifications = async () => {
             if (!db || !sessionUser) return;
             
-            // Get last viewed timestamp for notifications
             const lastViewed = localStorage.getItem(`lastViewedMatches_${sessionUser.id}`);
-            if (!lastViewed) return; // If first time, don't show notification yet
+            if (!lastViewed) return;
             
-            // Check for:
-            // 1. New pending requests to me
-            // 2. New rejections of my requests
-            // 3. New mutual matches (where both are pending)
-            
+            // Check for any new or updated records involving the user
+            // We try to check updated_at to catch rejections/matches
             const { data: news } = await db.from('matches')
-                .select('*')
+                .select('created_at')
                 .or(`to_user_id.eq.${sessionUser.id},from_user_id.eq.${sessionUser.id}`)
-                .gt('created_at', lastViewed); // Note: Rejections currently update existing records, so we ideally need updated_at.
-                                               // But mutual matches create new records, so created_at works.
+                .or(`created_at.gt.${lastViewed}`);
             
-            // For rejections, since we update the record, created_at doesn't change.
-            // If the DB has updated_at, we should use it. 
-            // We'll also check if any existing record's status has changed.
-            
-            if (news && news.length > 0) {
+            // Note: Since we can't be 100% sure about updated_at column existence in user's DB,
+            // we'll try to fetch it optionally.
+            const { data: updatedNews } = await db.from('matches')
+                .select('updated_at')
+                .or(`to_user_id.eq.${sessionUser.id},from_user_id.eq.${sessionUser.id}`)
+                .gt('updated_at', lastViewed)
+                .maybeSingle(); // Just a probe
+
+            if ((news && news.length > 0) || updatedNews) {
                 const btnMatchStatus = document.getElementById('btnMatchStatus');
                 if (btnMatchStatus) {
                     btnMatchStatus.classList.add('btn-highlight');
@@ -906,6 +905,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sentItems = [];
             const matchedIds = [];
 
+            const isRecordNew = (rec) => {
+                if (!rec) return false;
+                const cTime = new Date(rec.created_at);
+                const uTime = rec.updated_at ? new Date(rec.updated_at) : cTime;
+                return cTime > previousLastViewed || uTime > previousLastViewed;
+            };
+
             // Identify Mutual Matches
             sent?.forEach(s => {
                 const mutualRec = received?.find(r => r.from_user_id === s.to_user_id && r.status === 'pending');
@@ -913,15 +919,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (isMutual) {
                     matchedIds.push(s.to_user_id);
-                    // Match is new if either the sent or received record is new
-                    const isNew = new Date(s.created_at) > previousLastViewed || (mutualRec && new Date(mutualRec.created_at) > previousLastViewed);
+                    // Match is new if either record was created/updated recently
+                    const isNew = isRecordNew(s) || isRecordNew(mutualRec);
                     matchedItems.push({ userId: s.to_user_id, isNew });
                 } else if (s.status === 'pending' || s.status === 'rejected') {
                     // This is a request I sent
                     if (s.status === 'rejected') {
                         s.wasRejectedByThem = true;
                     }
-                    s.isNew = new Date(s.created_at) > previousLastViewed;
+                    s.isNew = isRecordNew(s);
                     sentItems.push(s);
                 }
             });
@@ -931,7 +937,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!matchedIds.includes(r.from_user_id) && (r.status === 'pending' || r.status === 'rejected')) {
                     const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
                     r.myResponseStatus = myResponse?.status;
-                    r.isNew = new Date(r.created_at) > previousLastViewed;
+                    r.isNew = isRecordNew(r);
                     receivedItems.push(r);
                 }
             });
