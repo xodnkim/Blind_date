@@ -115,6 +115,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             welcomeNameEl.innerHTML = icon + sessionUser.name + '님';
         }
 
+        const adminMenuLink = document.getElementById('adminMenuLink');
+        if (adminMenuLink && sessionUser.role === 'admin') {
+            adminMenuLink.style.display = 'inline-block';
+        }
+
         // 3. Logout Handler
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {

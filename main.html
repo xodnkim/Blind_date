@@ -22,6 +22,7 @@
             <span>Blind Date</span>
         </div>
         <div class="nav-profile">
+            <a href="admin.html" id="adminMenuLink" class="admin-link" style="display: none; font-size: 0.8rem; color: #ffce00; margin-right: 15px; text-decoration: none; font-weight: bold;"><i class="ph-fill ph-crown"></i> 관리자 페이지</a>
             <span id="welcomeName" class="user-greeting">사용자님</span>
             <button id="logoutBtn" class="btn-icon" title="로그아웃"><i class="ph ph-sign-out"></i></button>
         </div>
@@ -32,43 +33,21 @@
         
         <!-- Welcome Section -->
         <header class="dashboard-header">
-            <h1 class="page-title">오늘의 인연을 확인해보세요 ✨</h1>
-            <p class="page-subtitle">지인이 추천하는 믿을 수 있는 블라인드 데이트</p>
+            <h1 class="page-title">프로필을 등록해주세요 ✨</h1>
+            <p class="page-subtitle">매력적인 프로필은 성공적인 매칭의 첫걸음입니다.</p>
         </header>
 
         <!-- Feature Cards Grid -->
         <div class="card-grid">
-            
-            <!-- Match Card (Primary Action) -->
-            <div class="feature-card primary-card">
-                <div class="card-icon"><i class="ph-fill ph-sparkle"></i></div>
-                <div class="card-content">
-                    <h3>오늘의 매칭</h3>
-                    <p>나와 가치관이 맞는 새로운 인연을 소개받으세요.</p>
-                </div>
-                <button class="btn-action">매칭 확인하기</button>
-                <!-- Status badge (e.g., '매칭 대기중', '새로운 프로필 도착') -->
-                <div class="card-badge">New 1건</div>
-            </div>
 
             <!-- Profile Card -->
-            <div class="feature-card">
+            <div class="feature-card primary-card">
                 <div class="card-icon"><i class="ph-fill ph-user-circle"></i></div>
                 <div class="card-content">
-                    <h3>내 프로필</h3>
-                    <p>나의 매력을 어필할 수 있는 프로필을 완성해보세요.</p>
+                    <h3>내 프로필 등록</h3>
+                    <p>사진, 취미, 이상형 등 나의 매력을 뽐낼 수 있는 프로필을 완성해보세요.</p>
                 </div>
-                <button class="btn-action secondary">프로필 관리</button>
-            </div>
-
-            <!-- Invite/Referral Card -->
-            <div class="feature-card">
-                <div class="card-icon"><i class="ph-fill ph-users-three"></i></div>
-                <div class="card-content">
-                    <h3>지인 초대</h3>
-                    <p>좋은 사람을 소개하고 매칭 확률을 높여보세요.</p>
-                </div>
-                <button class="btn-action secondary">초대 링크 복사</button>
+                <button class="btn-action" onclick="alert('프로필 등록 기능은 곧 오픈됩니다!')">프로필 등록하기</button>
             </div>
 
         </div>
