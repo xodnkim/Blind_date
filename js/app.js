@@ -548,14 +548,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 2. Fetch Match Status (if not self)
             let isMatched = false;
             let myRequestStatus = null; // 'pending' or 'rejected' or null
+            let mutual = null;
 
             if (!isSelf) {
                 // Check if I liked them
-                const { data: myReq } = await db.from('matches').select('status').eq('from_user_id', sessionUser.id).eq('to_user_id', targetUserId).single();
+                const { data: myReq } = await db.from('matches').select('status').eq('from_user_id', sessionUser.id).eq('to_user_id', targetUserId).maybeSingle();
                 myRequestStatus = myReq?.status;
 
                 // Check if we are mutually matched
-                const { data: mutual } = await db.from('matches').select('status').eq('from_user_id', targetUserId).eq('to_user_id', sessionUser.id).maybeSingle();
+                const { data: mutualData } = await db.from('matches').select('status').eq('from_user_id', targetUserId).eq('to_user_id', sessionUser.id).maybeSingle();
+                mutual = mutualData;
+                
                 if (myRequestStatus === 'pending' && mutual && mutual.status === 'pending') {
                     isMatched = true;
                 }
