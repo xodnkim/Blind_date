@@ -620,7 +620,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             updatePhotoView();
 
             // 4. Fill Information
-            document.getElementById('vName').innerText = profile.name + (profile.gender === '여성' ? ' ♀' : ' ♂');
+            const genderSymbol = profile.gender === '여성' ? 
+                '<span style="color: #ff4d6d; font-size: 0.85em; margin-left: 4px; font-weight: bold;">♀</span>' : 
+                '<span style="color: #4361ee; font-size: 0.85em; margin-left: 4px; font-weight: bold;">♂</span>';
+            document.getElementById('vName').innerHTML = profile.name + genderSymbol;
             document.getElementById('vAge').innerText = profile.birth_year + '년생';
             document.getElementById('vLocation').innerText = profile.location;
             document.getElementById('vHeight').innerText = profile.height + 'cm';
@@ -714,18 +717,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Event Listeners
                 btnRequest.onclick = async () => {
+                    console.log('Button Clicked. Status:', myRequestStatus);
                     if (myRequestStatus === 'pending') return;
-                    if (mutual && mutual.status === 'rejected') return;
+                    if (mutual && mutual.status === 'rejected') {
+                        alert('상대방이 거절한 상태라 신청할 수 없습니다.');
+                        return;
+                    }
                     
                     if (myRequestStatus === 'rejected') {
-                        if (!confirm('다시 매칭 신청을 보내시겠습니까?')) return;
-                        const { error } = await db.from('matches').update({ status: 'pending' }).eq('from_user_id', sessionUser.id).eq('to_user_id', targetUserId);
+                        if (!confirm('정말 다시 매칭 신청을 보내시겠습니까?')) return;
+                        const { error } = await db.from('matches')
+                            .update({ status: 'pending' })
+                            .eq('from_user_id', sessionUser.id)
+                            .eq('to_user_id', targetUserId);
+                            
                         if (error) {
                             alert('신청 중 오류 발생: ' + error.message);
                             return;
                         }
                     } else {
-                        const { error } = await db.from('matches').insert([{ from_user_id: sessionUser.id, to_user_id: targetUserId, status: 'pending' }]);
+                        // New request or accepting incoming
+                        const { error } = await db.from('matches').upsert([{ 
+                            from_user_id: sessionUser.id, 
+                            to_user_id: targetUserId, 
+                            status: 'pending' 
+                        }]);
+                        
                         if (error) {
                             alert('신청 중 오류 발생: ' + error.message);
                             return;
@@ -733,16 +750,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     
                     // Check if it's now a match
-                    const { data: mutual } = await db.from('matches')
+                    const { data: latestMutual } = await db.from('matches')
                         .select('status')
                         .eq('from_user_id', targetUserId)
                         .eq('to_user_id', sessionUser.id)
                         .maybeSingle();
                     
-                    if (mutual && mutual.status === 'pending') {
+                    if (latestMutual && latestMutual.status === 'pending') {
                         showMatchSuccess();
                     } else {
-                        alert('매칭 신청을 보냈습니다!');
+                        alert('매칭 신청을 다시 보냈습니다!');
                         window.location.reload();
                     }
                 };
