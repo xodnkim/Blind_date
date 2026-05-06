@@ -42,24 +42,24 @@
                 <h2 class="section-title"><i class="ph-fill ph-camera"></i> 사진 등록</h2>
                 <div class="photo-upload-grid">
                     <div class="photo-box main-photo">
-                        <input type="file" id="photo1" accept="image/*" class="file-input">
+                        <input type="file" id="photo1" accept="image/*" class="file-input" required>
                         <label for="photo1" class="photo-label">
                             <i class="ph ph-plus"></i>
                             <span>대표 사진 (필수)</span>
                         </label>
                     </div>
                     <div class="photo-box">
-                        <input type="file" id="photo2" accept="image/*" class="file-input">
+                        <input type="file" id="photo2" accept="image/*" class="file-input" required>
                         <label for="photo2" class="photo-label">
                             <i class="ph ph-plus"></i>
-                            <span>추가 사진</span>
+                            <span>추가 사진 (필수)</span>
                         </label>
                     </div>
                     <div class="photo-box">
-                        <input type="file" id="photo3" accept="image/*" class="file-input">
+                        <input type="file" id="photo3" accept="image/*" class="file-input" required>
                         <label for="photo3" class="photo-label">
                             <i class="ph ph-plus"></i>
-                            <span>추가 사진</span>
+                            <span>추가 사진 (필수)</span>
                         </label>
                     </div>
                 </div>
@@ -77,8 +77,8 @@
                     <div class="form-group half">
                         <label>성별</label>
                         <div class="chip-group radio-group" id="genderGroup">
-                            <label class="chip"><input type="radio" name="gender" value="남성" required> 남성</label>
-                            <label class="chip"><input type="radio" name="gender" value="여성"> 여성</label>
+                            <label class="chip"><input type="radio" name="gender" value="남성" required> <span>남성</span></label>
+                            <label class="chip"><input type="radio" name="gender" value="여성" required> <span>여성</span></label>
                         </div>
                     </div>
                 </div>
@@ -112,7 +112,7 @@
                 
                 <div class="form-group">
                     <label for="mbti">MBTI</label>
-                    <input type="text" id="mbti" placeholder="예: ENFP" maxlength="4" style="text-transform: uppercase;">
+                    <input type="text" id="mbti" placeholder="예: ENFP" maxlength="4" style="text-transform: uppercase;" required>
                 </div>
 
                 <div class="form-row">
@@ -161,7 +161,7 @@
 
                 <div class="form-group">
                     <label for="hobbies">관심사 / 취미 (쉼표로 구분)</label>
-                    <input type="text" id="hobbies" placeholder="예: 러닝, 카페투어, 넷플릭스">
+                    <input type="text" id="hobbies" placeholder="예: 러닝, 카페투어, 넷플릭스" required>
                 </div>
             </section>
 
