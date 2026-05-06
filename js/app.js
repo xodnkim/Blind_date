@@ -95,12 +95,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Subtle parallax effect ---
-    document.addEventListener('mousemove', (e) => {
-        const loginBox = document.querySelector('.login-box');
-        if (!loginBox) return;
-        const moveX = (window.innerWidth / 2 - e.pageX) / 50;
-        const moveY = (window.innerHeight / 2 - e.pageY) / 50;
-        loginBox.style.transform = `translate(${moveX}px, ${moveY}px)`;
-    });
 });
