@@ -854,9 +854,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Identify Mutual Matches
             sent?.forEach(s => {
                 const isMutual = received?.some(r => r.from_user_id === s.to_user_id && r.status === 'pending') && s.status === 'pending';
+                const isRejectedByThem = received?.some(r => r.from_user_id === s.to_user_id && r.status === 'rejected');
+
                 if (isMutual) {
                     matchedIds.push(s.to_user_id);
                 } else if (s.status === 'pending') {
+                    if (isRejectedByThem) {
+                        s.wasRejected = true;
+                    }
                     sentItems.push(s);
                 }
             });
@@ -882,6 +887,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const rReq = receivedItems.find(item => item.from_user_id === userId);
                 if (rReq && rReq.myResponseStatus === 'rejected') {
                     finalBadgeText = '거절함';
+                    finalBadgeClass = '';
+                }
+
+                // If this is in sent list and they rejected it
+                const sReq = sentItems.find(item => item.to_user_id === userId);
+                if (sReq && sReq.wasRejected) {
+                    finalBadgeText = '거절됨';
                     finalBadgeClass = '';
                 }
 
