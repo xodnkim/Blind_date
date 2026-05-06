@@ -227,26 +227,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             const lastViewed = localStorage.getItem(`lastViewedMatches_${sessionUser.id}`);
             if (!lastViewed) return;
             
-            // Check for any new or updated records involving the user
-            // We try to check updated_at to catch rejections/matches
             const { data: news } = await db.from('matches')
-                .select('created_at')
+                .select('*')
                 .or(`to_user_id.eq.${sessionUser.id},from_user_id.eq.${sessionUser.id}`)
-                .or(`created_at.gt.${lastViewed}`);
+                .or(`created_at.gt.${lastViewed},updated_at.gt.${lastViewed}`);
             
-            // Note: Since we can't be 100% sure about updated_at column existence in user's DB,
-            // we'll try to fetch it optionally.
-            const { data: updatedNews } = await db.from('matches')
-                .select('updated_at')
-                .or(`to_user_id.eq.${sessionUser.id},from_user_id.eq.${sessionUser.id}`)
-                .gt('updated_at', lastViewed)
-                .maybeSingle(); // Just a probe
+            if (news && news.length > 0) {
+                // Filter news based on user's rules
+                const hasImportantNews = news.some(n => {
+                    // 1. New request received
+                    if (n.to_user_id === sessionUser.id && n.status === 'pending') return true;
+                    // 2. Sent request rejected
+                    if (n.from_user_id === sessionUser.id && n.status === 'rejected') return true;
+                    // 3. Match Success (covered by pending to_user_id for both in a sense, but explicit check)
+                    // If a match record exists and is fresh, it's news
+                    return false; // The logic above covers rejections and new requests.
+                });
 
-            if ((news && news.length > 0) || updatedNews) {
-                const btnMatchStatus = document.getElementById('btnMatchStatus');
-                if (btnMatchStatus) {
-                    btnMatchStatus.classList.add('btn-highlight');
-                    btnMatchStatus.innerHTML = '<i class="ph-fill ph-bell-ringing"></i> 새로운 소식 있음';
+                if (hasImportantNews) {
+                    const btnMatchStatus = document.getElementById('btnMatchStatus');
+                    if (btnMatchStatus) {
+                        btnMatchStatus.classList.add('btn-highlight');
+                        btnMatchStatus.innerHTML = '<i class="ph-fill ph-bell-ringing"></i> 새로운 소식 있음';
+                    }
                 }
             }
         };
@@ -940,15 +943,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (isMutual) {
                     matchedIds.push(s.to_user_id);
-                    // Match is new if either record was created/updated recently
+                    // 3. Match success: Highlight if either record is new
                     const isNew = isRecordNew(s) || isRecordNew(mutualRec);
                     matchedItems.push({ userId: s.to_user_id, isNew });
                 } else if (s.status === 'pending' || s.status === 'rejected') {
                     // This is a request I sent
                     if (s.status === 'rejected') {
                         s.wasRejectedByThem = true;
+                        // 2. Sent request rejected: Highlight only if it just changed to rejected
+                        s.isNew = isRecordNew(s);
+                    } else {
+                        // Pending sent: No highlight (I already know I sent it)
+                        s.isNew = false;
                     }
-                    s.isNew = isRecordNew(s);
                     sentItems.push(s);
                 }
             });
@@ -958,7 +965,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!matchedIds.includes(r.from_user_id) && (r.status === 'pending' || r.status === 'rejected')) {
                     const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
                     r.myResponseStatus = myResponse?.status;
-                    r.isNew = isRecordNew(r);
+                    // Received request: Highlight only if it is a new 'pending' request
+                    r.isNew = r.status === 'pending' && new Date(r.created_at) > previousLastViewed;
                     receivedItems.push(r);
                 }
             });
