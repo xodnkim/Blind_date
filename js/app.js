@@ -176,7 +176,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!db) return;
             const { data: profile } = await db.from('profiles').select('user_id').eq('user_id', sessionUser.id).single();
             
+            const btnFindDate = document.getElementById('btnFindDate');
+
             if (profile) {
+                // Enable Find Date button
+                if (btnFindDate) {
+                    btnFindDate.disabled = false;
+                    btnFindDate.style.opacity = '1';
+                    btnFindDate.style.cursor = 'pointer';
+                }
+
                 const title = document.getElementById('profileCardTitle');
                 const desc = document.getElementById('profileCardDesc');
                 const actionArea = document.getElementById('profileActionArea');
@@ -194,6 +203,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <button class="btn-action secondary" onclick="window.location.href='profile_view.html'" style="flex: 1; padding: 12px; font-size: 0.95rem;">프로필 확인</button>
                         <button class="btn-action" onclick="window.location.href='profile.html'" style="flex: 1; padding: 12px; font-size: 0.95rem;">프로필 수정</button>
                     `;
+                }
+            } else {
+                // Disable Find Date button
+                if (btnFindDate) {
+                    btnFindDate.disabled = true;
+                    btnFindDate.style.opacity = '0.5';
+                    btnFindDate.style.cursor = 'not-allowed';
+                    btnFindDate.onclick = (e) => {
+                        e.preventDefault();
+                        alert('프로필을 먼저 등록해야 인연 찾기가 가능합니다.');
+                        return false;
+                    };
                 }
             }
         };
