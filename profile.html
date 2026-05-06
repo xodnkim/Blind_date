@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blind Date | 내 프로필 등록</title>
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+
+    <!-- Background Trendy Elements -->
+    <div class="bg-blob blob-1" style="top: -20%; right: -10%; opacity: 0.3;"></div>
+    <div class="bg-blob blob-2" style="bottom: -20%; left: -10%; opacity: 0.3;"></div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="ph-fill ph-heart"></i>
+            <span>Blind Date</span>
+        </div>
+        <div class="nav-profile">
+            <a href="main.html" class="btn-icon" title="뒤로 가기" style="font-size: 1rem; margin-right: 10px; font-weight: bold; text-decoration: none;">메인으로</a>
+            <span id="welcomeName" class="user-greeting">사용자님</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-container" style="max-width: 800px;">
+        
+        <header class="dashboard-header" style="text-align: center; margin-bottom: 30px;">
+            <h1 class="page-title">내 프로필 완성하기 ✨</h1>
+            <p class="page-subtitle">상대방에게 보여질 나의 매력적인 모습을 등록해주세요.</p>
+        </header>
+
+        <form id="profileForm" class="profile-form-container">
+            
+            <!-- 1. 사진 등록 -->
+            <section class="profile-section">
+                <h2 class="section-title"><i class="ph-fill ph-camera"></i> 사진 등록</h2>
+                <div class="photo-upload-grid">
+                    <div class="photo-box main-photo">
+                        <input type="file" id="photo1" accept="image/*" class="file-input">
+                        <label for="photo1" class="photo-label">
+                            <i class="ph ph-plus"></i>
+                            <span>대표 사진 (필수)</span>
+                        </label>
+                    </div>
+                    <div class="photo-box">
+                        <input type="file" id="photo2" accept="image/*" class="file-input">
+                        <label for="photo2" class="photo-label">
+                            <i class="ph ph-plus"></i>
+                            <span>추가 사진</span>
+                        </label>
+                    </div>
+                    <div class="photo-box">
+                        <input type="file" id="photo3" accept="image/*" class="file-input">
+                        <label for="photo3" class="photo-label">
+                            <i class="ph ph-plus"></i>
+                            <span>추가 사진</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 기본 정보 -->
+            <section class="profile-section">
+                <h2 class="section-title"><i class="ph-fill ph-identification-card"></i> 기본 정보</h2>
+                
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="profileName">이름</label>
+                        <input type="text" id="profileName" placeholder="실명 입력" required>
+                    </div>
+                    <div class="form-group half">
+                        <label>성별</label>
+                        <div class="chip-group radio-group" id="genderGroup">
+                            <label class="chip"><input type="radio" name="gender" value="남성" required> 남성</label>
+                            <label class="chip"><input type="radio" name="gender" value="여성"> 여성</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="birthYear">출생 연도</label>
+                        <input type="number" id="birthYear" placeholder="예: 1995" min="1970" max="2006" required>
+                    </div>
+                    <div class="form-group half">
+                        <label for="location">거주 지역</label>
+                        <input type="text" id="location" placeholder="예: 서울 강남구" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="height">키 (cm)</label>
+                        <input type="number" id="height" placeholder="예: 175" required>
+                    </div>
+                    <div class="form-group half">
+                        <label for="job">직업 / 직장</label>
+                        <input type="text" id="job" placeholder="예: IT 개발자 / 네이버" required>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 라이프스타일 & 성향 -->
+            <section class="profile-section">
+                <h2 class="section-title"><i class="ph-fill ph-star"></i> 라이프스타일 & 성향</h2>
+                
+                <div class="form-group">
+                    <label for="mbti">MBTI</label>
+                    <input type="text" id="mbti" placeholder="예: ENFP" maxlength="4" style="text-transform: uppercase;">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>흡연 여부</label>
+                        <select id="smoking" required>
+                            <option value="">선택하세요</option>
+                            <option value="비흡연">비흡연</option>
+                            <option value="가끔 피움">가끔 피움</option>
+                            <option value="흡연">흡연</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label>음주 여부</label>
+                        <select id="drinking" required>
+                            <option value="">선택하세요</option>
+                            <option value="전혀 안 함">전혀 안 함</option>
+                            <option value="가끔 마심">가끔 마심</option>
+                            <option value="즐기는 편">즐기는 편</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>문신 여부</label>
+                        <select id="tattoo" required>
+                            <option value="">선택하세요</option>
+                            <option value="없음">없음</option>
+                            <option value="작은 타투(안보이는곳)">작은 타투 (안보이는 곳)</option>
+                            <option value="있음">있음</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label>종교</label>
+                        <select id="religion" required>
+                            <option value="">선택하세요</option>
+                            <option value="무교">무교</option>
+                            <option value="기독교">기독교</option>
+                            <option value="천주교">천주교</option>
+                            <option value="불교">불교</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="hobbies">관심사 / 취미 (쉼표로 구분)</label>
+                    <input type="text" id="hobbies" placeholder="예: 러닝, 카페투어, 넷플릭스">
+                </div>
+            </section>
+
+            <!-- 4. 자기소개 & 이상형 -->
+            <section class="profile-section">
+                <h2 class="section-title"><i class="ph-fill ph-note-pencil"></i> 자기소개 & 이상형</h2>
+                
+                <div class="form-group">
+                    <label for="introMessage">한 줄 자기소개</label>
+                    <input type="text" id="introMessage" placeholder="나를 잘 표현할 수 있는 한 줄을 적어주세요!" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="idealType">이런 사람을 만나고 싶어요</label>
+                    <textarea id="idealType" rows="4" placeholder="원하는 연애 스타일이나 이상형의 조건을 편하게 적어주세요." required></textarea>
+                </div>
+            </section>
+
+            <button type="submit" class="btn-action" style="font-size: 1.2rem; padding: 20px; margin-top: 20px;">내 프로필 저장하고 매칭 시작하기</button>
+
+        </form>
+
+    </main>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase_config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

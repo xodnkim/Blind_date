@@ -128,6 +128,46 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.href = 'index.html';
             });
         }
+    // --- Profile Form Handler ---
+    const profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            if (!sessionUser) {
+                alert('로그인이 만료되었습니다.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const profileData = {
+                user_id: sessionUser.id,
+                name: document.getElementById('profileName').value,
+                gender: document.querySelector('input[name="gender"]:checked')?.value || '',
+                birth_year: document.getElementById('birthYear').value,
+                location: document.getElementById('location').value,
+                height: document.getElementById('height').value,
+                job: document.getElementById('job').value,
+                mbti: document.getElementById('mbti').value,
+                smoking: document.getElementById('smoking').value,
+                drinking: document.getElementById('drinking').value,
+                tattoo: document.getElementById('tattoo').value,
+                religion: document.getElementById('religion').value,
+                hobbies: document.getElementById('hobbies').value,
+                intro_message: document.getElementById('introMessage').value,
+                ideal_type: document.getElementById('idealType').value,
+                updated_at: new Date().toISOString()
+            };
+
+            const { error } = await db.from('profiles').upsert(profileData);
+
+            if (error) {
+                alert('프로필 저장 중 오류가 발생했습니다: ' + error.message);
+            } else {
+                alert('프로필이 성공적으로 저장되었습니다!');
+                window.location.href = 'main.html';
+            }
+        });
     }
 
 });
