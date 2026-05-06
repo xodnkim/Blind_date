@@ -219,6 +219,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
         checkProfileStatus();
+
+        // 5. Check for Notifications (New match requests received)
+        const checkNotifications = async () => {
+            if (!db || !sessionUser) return;
+            
+            // Check for any pending requests sent TO the user
+            const { data: received } = await db.from('matches')
+                .select('from_user_id')
+                .eq('to_user_id', sessionUser.id)
+                .eq('status', 'pending');
+            
+            if (received && received.length > 0) {
+                const btnMatchStatus = document.getElementById('btnMatchStatus');
+                if (btnMatchStatus) {
+                    btnMatchStatus.classList.add('btn-highlight');
+                    btnMatchStatus.innerHTML = '<i class="ph-fill ph-bell-ringing"></i> 신청 확인하기';
+                }
+            }
+        };
+        checkNotifications();
     }
 
     // --- Profile Form Handler ---
