@@ -422,17 +422,65 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             document.getElementById('profileViewCard').style.display = 'block';
 
-            // Populate data
-            if (profile.photo1) {
-                document.getElementById('vPhoto').src = profile.photo1;
-            } else {
-                // If no photo exists, hide the image to prevent broken icon
-                document.getElementById('vPhoto').style.display = 'none';
-                document.querySelector('.view-photos').style.display = 'flex';
-                document.querySelector('.view-photos').style.alignItems = 'center';
-                document.querySelector('.view-photos').style.justifyContent = 'center';
-                document.querySelector('.view-photos').innerHTML = '<span style="color: #666;">등록된 사진이 없습니다.</span>';
-            }
+            // --- Photo Slider Logic ---
+            const photos = [profile.photo1, profile.photo2, profile.photo3].filter(p => p);
+            window.profilePhotos = photos;
+            window.currentPhotoIndex = 0;
+
+            const updatePhotoView = () => {
+                if (photos.length === 0) {
+                    document.getElementById('vPhoto').style.display = 'none';
+                    document.querySelector('.view-photos').style.display = 'flex';
+                    document.querySelector('.view-photos').style.alignItems = 'center';
+                    document.querySelector('.view-photos').style.justifyContent = 'center';
+                    document.querySelector('.view-photos').innerHTML = '<span style="color: #666;">등록된 사진이 없습니다.</span>';
+                    return;
+                }
+
+                // Update Image
+                document.getElementById('vPhoto').src = photos[window.currentPhotoIndex];
+                document.getElementById('vPhoto').style.display = 'block';
+
+                // Update Indicators
+                const indicators = document.getElementById('photoIndicators');
+                if (indicators) {
+                    if (photos.length > 1) {
+                        indicators.innerHTML = photos.map((_, idx) => 
+                            `<div class="photo-bar ${idx === window.currentPhotoIndex ? 'active' : ''}"></div>`
+                        ).join('');
+                    } else {
+                        indicators.innerHTML = '';
+                    }
+                }
+            };
+
+            window.prevPhoto = () => {
+                if (!window.profilePhotos || window.profilePhotos.length <= 1) return;
+                if (window.currentPhotoIndex > 0) {
+                    window.currentPhotoIndex--;
+                    updatePhotoView();
+                } else {
+                    // Loop to end
+                    window.currentPhotoIndex = window.profilePhotos.length - 1;
+                    updatePhotoView();
+                }
+            };
+
+            window.nextPhoto = () => {
+                if (!window.profilePhotos || window.profilePhotos.length <= 1) return;
+                if (window.currentPhotoIndex < window.profilePhotos.length - 1) {
+                    window.currentPhotoIndex++;
+                    updatePhotoView();
+                } else {
+                    // Loop to start
+                    window.currentPhotoIndex = 0;
+                    updatePhotoView();
+                }
+            };
+
+            // Initial load
+            updatePhotoView();
+            // --- End Photo Slider Logic ---
             
             document.getElementById('vName').innerText = profile.name + (profile.gender === '여성' ? ' 🙎‍♀️' : ' 🙎‍♂️');
             document.getElementById('vAge').innerText = profile.birth_year + '년생';

@@ -32,7 +32,43 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: opacity 0.2s ease-in-out;
         }
+
+        .photo-indicators {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        .photo-bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 2px;
+            transition: background 0.3s;
+        }
+
+        .photo-bar.active {
+            background: white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .photo-tap-left, .photo-tap-right {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            z-index: 5;
+            cursor: pointer;
+        }
+        
+        .photo-tap-left { left: 0; }
+        .photo-tap-right { right: 0; }
 
         .view-content {
             padding: 30px;
@@ -120,7 +156,10 @@
         
         <div class="profile-view-card" id="profileViewCard" style="display: none;">
             
-            <div class="view-photos">
+            <div class="view-photos" id="vPhotoContainer">
+                <div class="photo-indicators" id="photoIndicators"></div>
+                <div class="photo-tap-left" onclick="window.prevPhoto && window.prevPhoto()"></div>
+                <div class="photo-tap-right" onclick="window.nextPhoto && window.nextPhoto()"></div>
                 <img id="vPhoto" src="" alt="Profile Photo" class="view-photo-main">
             </div>
 
