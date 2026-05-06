@@ -464,10 +464,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td>${u.referrer || '-'}</td>
                     <td>${new Date(u.created_at).toLocaleDateString()}</td>
                     <td>
-                        ${u.status === 'pending' 
-                            ? `<button class="btn-small" onclick="approveUser('${u.id}')">승인하기</button>` 
-                            : `<span class="badge approved">승인완료</span>`
-                        }
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            ${u.status === 'pending' 
+                                ? `<button class="btn-small" onclick="approveUser('${u.id}')">승인하기</button>` 
+                                : `<span class="badge approved" style="margin-right: 0;">승인완료</span>`
+                            }
+                            ${u.id !== ADMIN_ID ? `<button class="btn-small" style="background: rgba(255, 77, 109, 0.1); color: #ff4d6d; border: 1px solid rgba(255, 77, 109, 0.3);" onclick="deleteUser('${u.id}')"><i class="ph ph-user-minus"></i> 탈퇴</button>` : ''}
+                        </div>
                     </td>
                 </tr>
             `).join('');
@@ -483,6 +486,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 alert('승인되었습니다.');
                 loadPendingUsers();
+            }
+        };
+
+        window.deleteUser = async (userId) => {
+            if (!confirm(`정말 ${userId} 회원을 탈퇴 처리하시겠습니까?\n해당 회원의 프로필 및 모든 매칭 데이터가 영구적으로 삭제됩니다.`)) return;
+            
+            if (!db) return;
+
+            try {
+                // 1. 매칭 데이터 삭제 (보낸 것, 받은 것 모두)
+                await db.from('matches').delete().or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
+                
+                // 2. 프로필 데이터 삭제
+                await db.from('profiles').delete().eq('user_id', userId);
+                
+                // 3. 사용자 계정 삭제
+                const { error } = await db.from('users').delete().eq('id', userId);
+                
+                if (error) throw error;
+                
+                alert(`${userId} 회원이 성공적으로 탈퇴 처리되었습니다.`);
+                loadPendingUsers();
+            } catch (err) {
+                alert('탈퇴 처리 중 오류 발생: ' + err.message);
+                console.error(err);
             }
         };
 
