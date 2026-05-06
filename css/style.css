@@ -315,10 +315,10 @@ body {
     font-size: 1rem;
 }
 
-.card-grid {
+.card-grid, .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
+    gap: 30px;
 }
 
 .feature-card {
