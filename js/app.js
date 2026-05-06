@@ -841,8 +841,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Identify Mutual Matches
             sent?.forEach(s => {
-                const isMutual = received?.some(r => r.from_user_id === s.to_user_id && s.status === 'pending');
-                if (isMutual && s.status === 'pending') {
+                const isMutual = received?.some(r => r.from_user_id === s.to_user_id && r.status === 'pending') && s.status === 'pending';
+                if (isMutual) {
                     matchedIds.push(s.to_user_id);
                 } else if (s.status === 'pending') {
                     sentItems.push(s);
@@ -850,18 +850,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             received?.forEach(r => {
-                // Check if I have already sent a 'rejected' response to this person
-                const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
-                
-                if (!matchedIds.includes(r.from_user_id) && r.status === 'pending' && (!myResponse || myResponse.status !== 'rejected')) {
+                if (!matchedIds.includes(r.from_user_id) && r.status === 'pending') {
+                    // Check if I rejected this person
+                    const myResponse = sent?.find(s => s.to_user_id === r.from_user_id);
+                    r.myResponseStatus = myResponse?.status;
                     receivedItems.push(r);
                 }
             });
 
             // Render
-            const renderItem = (userId, badgeText, badgeClass = '', isMatched = false) => {
+            const renderItem = (userId, badgeText, badgeClass = '', isMatched = false, showDelete = false) => {
                 const p = profileMap[userId];
                 if (!p) return '';
+
+                let finalBadgeText = badgeText;
+                let finalBadgeClass = badgeClass;
+
+                // If this is in received list and I rejected it
+                const rReq = receivedItems.find(item => item.from_user_id === userId);
+                if (rReq && rReq.myResponseStatus === 'rejected') {
+                    finalBadgeText = '거절함';
+                    finalBadgeClass = '';
+                }
+
                 return `
                     <div class="match-item ${isMatched ? 'success' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
                         <div class="user-info">
@@ -871,14 +882,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <p>${p.birth_year}년생 · ${p.location}</p>
                             </div>
                         </div>
-                        <span class="match-status-badge ${badgeClass}">${badgeText}</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="match-status-badge ${finalBadgeClass}">${finalBadgeText}</span>
+                            ${showDelete ? `<button class="btn-icon" style="font-size: 1.2rem; color: #666; padding: 5px;" onclick="event.stopPropagation(); deleteMatch('${userId}')" title="삭제"><i class="ph ph-trash"></i></button>` : ''}
+                        </div>
                     </div>
                 `;
             };
 
             matchedList.innerHTML = matchedIds.length > 0 ? matchedIds.map(id => renderItem(id, '매칭 성공', 'badge-success', true)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">아직 매칭된 인연이 없습니다.</p>';
-            receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending')).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
+            receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending', false, true)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
             sentList.innerHTML = sentItems.length > 0 ? sentItems.map(s => renderItem(s.to_user_id, '대기 중')).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">보낸 신청이 없습니다.</p>';
+        };
+
+        window.deleteMatch = async (targetUserId) => {
+            if (!confirm('이 신청 내역을 목록에서 삭제하시겠습니까?')) return;
+            if (!db || !sessionUser) return;
+
+            // Delete their request to me
+            const { error } = await db.from('matches')
+                .delete()
+                .eq('from_user_id', targetUserId)
+                .eq('to_user_id', sessionUser.id);
+
+            if (error) alert('삭제 중 오류 발생: ' + error.message);
+            else {
+                alert('삭제되었습니다.');
+                loadMatchStatus();
+            }
         };
 
         loadMatchStatus();
