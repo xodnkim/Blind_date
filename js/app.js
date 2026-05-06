@@ -759,7 +759,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (latestMutual && latestMutual.status === 'pending') {
                         showMatchSuccess();
                     } else {
-                        alert('매칭 신청을 다시 보냈습니다!');
+                        const msg = myRequestStatus === 'rejected' ? '매칭 신청을 다시 보냈습니다!' : '매칭 신청을 보냈습니다!';
+                        alert(msg);
                         window.location.reload();
                     }
                 };
