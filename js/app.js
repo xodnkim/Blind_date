@@ -1388,11 +1388,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 5. Client-side filter for excluded IDs
             const filteredMembers = members.filter(m => !excludedIds.includes(m.user_id));
 
-            if (filteredMembers.length === 0) {
-                document.getElementById('noMembersMsg').style.display = 'block';
-                return;
-            }
-
             // 6. Fetch message data for badges (unread + conversations)
             const { data: myMessages } = await db.from('messages')
                 .select('from_user_id, to_user_id, is_read')
@@ -1446,23 +1441,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // 8. Fetch my Likes (기능 3번)
+            // 8. Fetch my Likes and Received Likes (기능 3번)
             const { data: myLikes } = await db.from('likes').select('to_user_id').eq('from_user_id', sessionUser.id);
             const likedUserIds = (myLikes || []).map(l => l.to_user_id);
+
+            const { data: recLikes } = await db.from('likes').select('from_user_id').eq('to_user_id', sessionUser.id);
+            const recLikedUserIds = (recLikes || []).map(l => l.from_user_id);
 
             const grid = document.getElementById('membersGrid');
             grid.innerHTML = finalMembers.map(m => {
                 const info = msgInfoMap[m.user_id];
                 const isLiked = likedUserIds.includes(m.user_id);
+                const hasLikedMe = recLikedUserIds.includes(m.user_id);
+
                 let badge = '';
                 if (info && info.unread > 0) {
                     badge = `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);"><span class="msg-badge" style="margin-left: 0;"><i class="ph-fill ph-chat-circle-dots"></i> ${info.unread}개 새 메시지</span></div>`;
                 } else if (info && info.total > 0) {
                     badge = `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);"><span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: #7c8aff; font-weight: 600;"><i class="ph-fill ph-chat-circle-dots"></i> 대화 중</span></div>`;
                 }
+
+                // 나를 좋아하는 경우 뱃지 추가
+                const likedMeBadge = hasLikedMe ? `<span class="like-badge" style="position: absolute; top: 15px; left: 15px; z-index: 20; background: rgba(255, 77, 109, 0.9);"><i class="ph-fill ph-heart"></i> Liked You</span>` : '';
+
                 return `
                 <div class="member-card" onclick="window.location.href='profile_view.html?id=${encodeURIComponent(m.user_id)}'">
                     <div class="member-photo-blur"></div>
+                    ${likedMeBadge}
                     <button class="btn-like ${isLiked ? 'active' : ''}" onclick="event.stopPropagation(); toggleLike('${m.user_id}', this)" title="관심 있어요">
                         <i class="${isLiked ? 'ph-fill' : 'ph'} ph-heart"></i>
                     </button>
@@ -1552,11 +1557,65 @@ document.addEventListener('DOMContentLoaded', async () => {
             const matchedIds = [];
             const currentRecordIds = []; // All IDs currently visible
 
+            const renderItem = (userId, badgeText, badgeClass = '', isMatched = false, showDelete = false, isNew = false) => {
+                const p = profileMap[userId];
+                if (!p) return '';
+
+                let finalBadgeText = badgeText;
+                let finalBadgeClass = badgeClass;
+
+                // 헬퍼: 현재 탭의 데이터 소스에서 상태 확인
+                const rReq = received?.find(item => item.from_user_id === userId);
+                if (rReq && (rReq.status === 'rejected')) {
+                    finalBadgeText = '거절함';
+                    finalBadgeClass = '';
+                }
+
+                const sReq = sent?.find(item => item.to_user_id === userId);
+                if (sReq && (sReq.status === 'rejected')) {
+                    finalBadgeText = '거절됨';
+                    finalBadgeClass = '';
+                }
+
+                // 신청 메시지 (기능 7번)
+                let matchMsgHtml = '';
+                if (rReq && rReq.message && !isMatched) {
+                    matchMsgHtml = `<div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; color: #ddd; border-left: 3px solid var(--primary);">
+                        <i class="ph-fill ph-chat-circle-dots" style="color: var(--primary); margin-right: 4px;"></i> "${escapeHtml(rReq.message)}"
+                    </div>`;
+                }
+
+                return `
+                    <div class="match-item ${isMatched ? 'success' : ''} ${isNew ? 'is-new' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
+                        <div class="user-info">
+                            <div class="user-avatar-small"><i class="ph-fill ph-user"></i></div>
+                            <div class="user-details">
+                                <h4>${isNew ? '<span class="new-badge">NEW</span>' : ''}${p.name}</h4>
+                                <p>${p.birth_year}년생 · ${p.location} · ${p.height}cm</p>
+                                <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
+                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.job}</span>
+                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.mbti}</span>
+                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.body_type}</span>
+                                </div>
+                                ${matchMsgHtml}
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="match-status-badge ${finalBadgeClass}">${finalBadgeText}</span>
+                            ${showDelete ? `<button class="btn-icon" style="font-size: 1.2rem; color: #666; padding: 5px;" onclick="event.stopPropagation(); deleteMatch('${userId}')" title="삭제"><i class="ph ph-trash"></i></button>` : ''}
+                        </div>
+                    </div>
+                `;
+            };
+
             // Identify Likes Received (Feature 2)
             const { data: myLikesRec } = await db.from('likes').select('*').eq('to_user_id', sessionUser.id);
-            const likeRecList = document.getElementById('likeRecList'); // HTML에 추가 필요
+            const likeRecList = document.getElementById('likeRecList');
+            const likeCountBadge = document.getElementById('likeCountBadge');
+
             if (likeRecList) {
                 if (myLikesRec && myLikesRec.length > 0) {
+                    if (likeCountBadge) likeCountBadge.innerText = myLikesRec.length;
                     likeRecList.innerHTML = myLikesRec.map(l => renderItem(l.from_user_id, '나를 좋아함', 'badge-success', false, false, false)).join('');
                     document.getElementById('likeSection').style.display = 'block';
                 } else {
@@ -1598,56 +1657,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     receivedItems.push(r);
                 }
             });
-
-            const renderItem = (userId, badgeText, badgeClass = '', isMatched = false, showDelete = false, isNew = false) => {
-                const p = profileMap[userId];
-                if (!p) return '';
-
-                let finalBadgeText = badgeText;
-                let finalBadgeClass = badgeClass;
-
-                const rReq = receivedItems.find(item => item.from_user_id === userId);
-                if (rReq && (rReq.myResponseStatus === 'rejected' || rReq.status === 'rejected')) {
-                    finalBadgeText = '거절함';
-                    finalBadgeClass = '';
-                }
-
-                const sReq = sentItems.find(item => item.to_user_id === userId);
-                if (sReq && (sReq.wasRejectedByThem || sReq.status === 'rejected')) {
-                    finalBadgeText = '거절됨';
-                    finalBadgeClass = '';
-                }
-
-                // 신청 메시지 (기능 7번)
-                let matchMsgHtml = '';
-                if (rReq && rReq.message && !isMatched) {
-                    matchMsgHtml = `<div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; color: #ddd; border-left: 3px solid var(--primary);">
-                        <i class="ph-fill ph-chat-circle-dots" style="color: var(--primary); margin-right: 4px;"></i> "${escapeHtml(rReq.message)}"
-                    </div>`;
-                }
-
-                return `
-                    <div class="match-item ${isMatched ? 'success' : ''} ${isNew ? 'is-new' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
-                        <div class="user-info">
-                            <div class="user-avatar-small"><i class="ph-fill ph-user"></i></div>
-                            <div class="user-details">
-                                <h4>${isNew ? '<span class="new-badge">NEW</span>' : ''}${p.name}</h4>
-                                <p>${p.birth_year}년생 · ${p.location} · ${p.height}cm</p>
-                                <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
-                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.job}</span>
-                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.mbti}</span>
-                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.body_type}</span>
-                                </div>
-                                ${matchMsgHtml}
-                            </div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="match-status-badge ${finalBadgeClass}">${finalBadgeText}</span>
-                            ${showDelete ? `<button class="btn-icon" style="font-size: 1.2rem; color: #666; padding: 5px;" onclick="event.stopPropagation(); deleteMatch('${userId}')" title="삭제"><i class="ph ph-trash"></i></button>` : ''}
-                        </div>
-                    </div>
-                `;
-            };
 
             matchedList.innerHTML = matchedItems.length > 0 ? matchedItems.map(item => renderItem(item.userId, '매칭 성공', 'badge-success', true, false, item.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">아직 매칭된 인연이 없습니다.</p>';
             receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending', false, true, r.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
