@@ -10,6 +10,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn("Supabase client not found. DB operations will fail, but hardcoded admin might work.");
     }
 
+    // --- 비밀번호 SHA-256 해싱 함수 ---
+    const hashPassword = async (password) => {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+
     // --- 에러 로그 기록 함수 ---
     const logError = async (message, userId = 'guest') => {
         if (!db) return;
@@ -25,12 +34,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // --- 텔레그램 알림 전송 함수 (서버리스 함수 경유, 토큰 브라우저 노출 없음) ---
+    // --- XSS 방지: HTML 이스케이프 함수 ---
+    const escapeHtml = (str) =>
+        String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+
+    // --- 텔레그램 알림 전송 함수 (서버리스 함수 경유, 비밀 키 헤더 포함) ---
+    const NOTIFY_SECRET = 'bd_notify_2026_s3cr3t_k3y';
     const sendTelegramMessage = async (message) => {
         try {
             await fetch('/api/notify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': NOTIFY_SECRET
+                },
                 body: JSON.stringify({ message })
             });
         } catch (e) {
@@ -39,11 +56,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
 
+    // --- 브루트포스 방어: 로그인 실패 횟수 추적 ---
+    const LOGIN_MAX_ATTEMPTS = 5;
+    const LOGIN_LOCK_DURATION = 3 * 60 * 1000; // 3분 잠금
+
+    const getLoginAttempts = () => {
+        const data = JSON.parse(sessionStorage.getItem('loginAttempts') || '{}');
+        if (data.lockUntil && Date.now() < data.lockUntil) {
+            return data;
+        }
+        if (data.lockUntil && Date.now() >= data.lockUntil) {
+            sessionStorage.removeItem('loginAttempts');
+            return { count: 0 };
+        }
+        return data;
+    };
+
+    const recordLoginFailure = () => {
+        const data = getLoginAttempts();
+        data.count = (data.count || 0) + 1;
+        if (data.count >= LOGIN_MAX_ATTEMPTS) {
+            data.lockUntil = Date.now() + LOGIN_LOCK_DURATION;
+        }
+        sessionStorage.setItem('loginAttempts', JSON.stringify(data));
+        return data;
+    };
+
     // --- Login Handler ---
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // 브루트포스 체크
+            const attempts = getLoginAttempts();
+            if (attempts.lockUntil && Date.now() < attempts.lockUntil) {
+                const remainSec = Math.ceil((attempts.lockUntil - Date.now()) / 1000);
+                alert(`로그인 시도가 ${LOGIN_MAX_ATTEMPTS}회 초과되었습니다.\n${remainSec}초 후에 다시 시도해주세요.`);
+                return;
+            }
+
             const idInput = document.getElementById('username').value;
             const pwInput = document.getElementById('password').value;
 
@@ -53,17 +105,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            // 비밀번호 해시 비교
+            const hashedPw = await hashPassword(pwInput);
+
             const { data: user, error } = await db
                 .from('users')
                 .select('*')
                 .eq('id', idInput)
-                .eq('password', pwInput)
+                .eq('password', hashedPw)
                 .single();
 
             if (error || !user) {
-                alert('아이디 또는 비밀번호가 올바르지 않습니다.');
+                const failData = recordLoginFailure();
+                const remaining = LOGIN_MAX_ATTEMPTS - failData.count;
+                if (remaining > 0) {
+                    alert(`아이디 또는 비밀번호가 올바르지 않습니다. (남은 시도: ${remaining}회)`);
+                } else {
+                    alert(`로그인 시도가 ${LOGIN_MAX_ATTEMPTS}회 초과되었습니다.\n3분 후에 다시 시도해주세요.`);
+                }
                 return;
             }
+
+            // 로그인 성공 시 실패 카운터 초기화
+            sessionStorage.removeItem('loginAttempts');
 
             if (user.status === 'pending') {
                 alert('아직 승인 대기 중입니다. 지인 확인 후 승인해 드릴게요!');
@@ -73,7 +137,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const rememberMe = document.getElementById('rememberMe')?.checked;
             alert(`${user.name}님, 환영합니다!`);
             
-            const userData = JSON.stringify(user);
+            // 비밀번호를 세션에 저장하지 않음 (보안)
+            const safeUser = { ...user };
+            delete safeUser.password;
+            const userData = JSON.stringify(safeUser);
             if (rememberMe) {
                 localStorage.setItem('currentUser', userData);
             } else {
@@ -106,10 +173,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            // 비밀번호 해싱 후 저장
+            const hashedPassword = await hashPassword(password);
+
             // Insert new user
             const { error } = await db.from('users').insert([{
                 id,
-                password,
+                password: hashedPassword,
                 name,
                 phone,
                 referrer,
@@ -450,8 +520,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isAdminPage = window.location.pathname.includes('admin.html');
     if (isAdminPage) {
         const sessionUser = getSessionUser();
-        if (!sessionUser || sessionUser.role !== 'admin') {
-            alert('관리자 권한이 없습니다.');
+
+        // 1단계: localStorage 에서 세션 확인
+        if (!sessionUser) {
+            alert('로그인이 필요합니다.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        // 2단계: DB에서 role 재확인 (브라우저 조작 우회 차단)
+        if (db) {
+            const { data: dbUser, error: roleError } = await db
+                .from('users')
+                .select('role')
+                .eq('id', sessionUser.id)
+                .single();
+
+            if (roleError || !dbUser || dbUser.role !== 'admin') {
+                alert('관리자 권한이 없습니다.');
+                window.location.href = 'index.html';
+                return;
+            }
+        } else {
+            alert('데이터베이스 연결이 필요합니다.');
             window.location.href = 'index.html';
             return;
         }
@@ -479,18 +570,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             listBody.innerHTML = users.map(u => `
                 <tr>
-                    <td>${u.id}</td>
-                    <td>${u.name}</td>
-                    <td>${u.phone || '-'}</td>
-                    <td>${u.referrer || '-'}</td>
+                    <td>${escapeHtml(u.id)}</td>
+                    <td>${escapeHtml(u.name)}</td>
+                    <td>${escapeHtml(u.phone || '-')}</td>
+                    <td>${escapeHtml(u.referrer || '-')}</td>
                     <td>${new Date(u.created_at).toLocaleDateString()}</td>
                     <td>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            ${u.status === 'pending' 
-                                ? `<button class="btn-small" onclick="approveUser('${u.id}')">승인하기</button>` 
+                            ${u.status === 'pending'
+                                ? `<button class="btn-small" onclick="approveUser('${escapeHtml(u.id)}')">승인하기</button>`
                                 : `<span class="badge approved" style="margin-right: 0;">승인완료</span>`
                             }
-                            ${u.id !== ADMIN_ID ? `<button class="btn-small" style="background: rgba(255, 77, 109, 0.1); color: #ff4d6d; border: 1px solid rgba(255, 77, 109, 0.3);" onclick="deleteUser('${u.id}')"><i class="ph ph-user-minus"></i> 탈퇴</button>` : ''}
+                            ${u.role !== 'admin' ? `<button class="btn-small" style="background: rgba(255, 77, 109, 0.1); color: #ff4d6d; border: 1px solid rgba(255, 77, 109, 0.3);" onclick="deleteUser('${escapeHtml(u.id)}')"><i class="ph ph-user-minus"></i> 탈퇴</button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -604,12 +695,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('profileViewCard').style.display = 'block';
 
             // 3. Photo Slider Logic
-            const photos = [profile.photo1, profile.photo2, profile.photo3].filter(p => p);
+            // 보안: 매칭 전에는 photo URL 자체를 클라이언트에 전달하지 않음
+            const PLACEHOLDER_PHOTO = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" fill="%23333"><rect width="400" height="400" fill="%231a1a2e"/><text x="200" y="185" text-anchor="middle" fill="%23666" font-size="48">🔒</text><text x="200" y="230" text-anchor="middle" fill="%23666" font-size="16">매칭 후 공개됩니다</text></svg>');
+            const allPhotos = [profile.photo1, profile.photo2, profile.photo3].filter(p => p);
+            
+            // 매칭되었거나 본인 프로필인 경우에만 실제 URL 사용
+            const photos = (isSelf || isMatched) ? allPhotos : allPhotos.map(() => PLACEHOLDER_PHOTO);
             window.profilePhotos = photos;
             window.currentPhotoIndex = 0;
 
             const updatePhotoView = () => {
-                if (photos.length === 0) {
+                if (allPhotos.length === 0) {
                     document.getElementById('vPhoto').style.display = 'none';
                     document.querySelector('.view-photos').style.display = 'flex';
                     document.querySelector('.view-photos').style.alignItems = 'center';
@@ -622,7 +718,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 img.src = photos[window.currentPhotoIndex];
                 img.style.display = 'block';
 
-                // Blur logic: If not self and not matched, blur the photo
+                // Blur logic: 매칭 전에는 placeholder에 추가 blur 적용
                 if (!isSelf && !isMatched) {
                     img.classList.add('blurred');
                 } else {
@@ -632,8 +728,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Update Indicators
                 const indicators = document.getElementById('photoIndicators');
                 if (indicators) {
-                    if (photos.length > 1) {
-                        indicators.innerHTML = photos.map((_, idx) => 
+                    if (allPhotos.length > 1) {
+                        indicators.innerHTML = allPhotos.map((_, idx) => 
                             `<div class="photo-bar ${idx === window.currentPhotoIndex ? 'active' : ''}"></div>`
                         ).join('');
                     } else {
@@ -907,15 +1003,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const grid = document.getElementById('membersGrid');
             grid.innerHTML = filteredMembers.map(m => `
-                <div class="member-card" onclick="window.location.href='profile_view.html?id=${m.user_id}'">
+                <div class="member-card" onclick="window.location.href='profile_view.html?id=${encodeURIComponent(m.user_id)}'">
                     <div class="member-photo-blur"></div>
                     <div class="member-info">
-                        <div class="member-name-age">${m.name} <span style="font-weight: 400; color: #888;">· ${m.birth_year}년생</span></div>
-                        <div style="color: var(--text-muted); font-size: 0.9rem;">${m.location} · ${m.height}cm</div>
+                        <div class="member-name-age">${escapeHtml(m.name)} <span style="font-weight: 400; color: #888;">· ${escapeHtml(m.birth_year)}년생</span></div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem;">${escapeHtml(m.location)} · ${escapeHtml(m.height)}cm</div>
                         <div class="member-tags">
-                            <span class="member-tag">${m.job}</span>
-                            <span class="member-tag">${m.mbti}</span>
-                            <span class="member-tag">${m.body_type}</span>
+                            <span class="member-tag">${escapeHtml(m.job)}</span>
+                            <span class="member-tag">${escapeHtml(m.mbti)}</span>
+                            <span class="member-tag">${escapeHtml(m.body_type)}</span>
                         </div>
                     </div>
                 </div>
