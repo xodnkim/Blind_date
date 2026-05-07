@@ -339,6 +339,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
         checkNotifications();
+
+        // 6. Check for Unread Messages
+        const checkUnreadMessages = async () => {
+            if (!db || !sessionUser) return;
+            const { count } = await db.from('messages')
+                .select('id', { count: 'exact', head: true })
+                .eq('to_user_id', sessionUser.id)
+                .eq('is_read', false);
+            
+            if (count && count > 0) {
+                const btnFindDate = document.getElementById('btnFindDate');
+                if (btnFindDate) {
+                    btnFindDate.innerHTML = `<i class="ph-fill ph-chat-circle-dots"></i> 인연 찾기 <span class="msg-badge">${count}</span>`;
+                }
+            }
+        };
+        checkUnreadMessages();
     }
 
     // --- Profile Form Handler ---
@@ -779,7 +796,167 @@ document.addEventListener('DOMContentLoaded', async () => {
                 hobbiesArea.innerHTML = hobbiesList.map(h => `<div class="view-tag">#${h.replace(/^#/, '')}</div>`).join('');
             }
 
-            // 5. Match Action Logic
+            // 5. Message Chat Logic (매칭 전 메시지 기능)
+            const MSG_LIMIT = 10;
+            const chatArea = document.getElementById('messageChatArea');
+            const chatMessagesEl = document.getElementById('chatMessages');
+            const chatInput = document.getElementById('chatInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+            const chatStatusMsg = document.getElementById('chatStatusMsg');
+            const msgCountBadge = document.getElementById('msgCountBadge');
+            const btnDeleteChat = document.getElementById('btnDeleteChat');
+
+            // 메시지 시간 포맷 함수
+            const formatMsgTime = (dateStr) => {
+                const d = new Date(dateStr);
+                const month = d.getMonth() + 1;
+                const day = d.getDate();
+                const h = d.getHours();
+                const m = String(d.getMinutes()).padStart(2, '0');
+                const ampm = h >= 12 ? '오후' : '오전';
+                const hour12 = h % 12 || 12;
+                return `${month}/${day} ${ampm} ${hour12}:${m}`;
+            };
+
+            // 메시지 렌더링
+            const renderMessages = (messages) => {
+                if (!messages || messages.length === 0) {
+                    chatMessagesEl.innerHTML = `
+                        <div class="chat-empty">
+                            <i class="ph ph-chat-teardrop-text"></i>
+                            매칭 전 가벼운 대화를 나눠보세요!
+                        </div>`;
+                    return;
+                }
+                chatMessagesEl.innerHTML = messages.map(m => `
+                    <div class="chat-bubble ${m.from_user_id === sessionUser.id ? 'mine' : 'theirs'}">
+                        ${escapeHtml(m.content)}
+                        <span class="chat-time">${formatMsgTime(m.created_at)}</span>
+                    </div>
+                `).join('');
+                chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+            };
+
+            // 입력 상태 업데이트
+            const updateChatInputState = (messages, mySentCount) => {
+                const lastMsg = messages?.length > 0 ? messages[messages.length - 1] : null;
+                const isMyTurn = !lastMsg || lastMsg.from_user_id !== sessionUser.id;
+
+                msgCountBadge.textContent = `${mySentCount}/${MSG_LIMIT}`;
+
+                // 매칭 결정 후 → 삭제만 가능
+                const isMatchDecided = isMatched || myRequestStatus === 'rejected';
+                const wasRejectedByMe = mutual && mutual.status === 'rejected';
+
+                if (isMatchDecided || wasRejectedByMe) {
+                    chatInput.disabled = true;
+                    chatSendBtn.disabled = true;
+                    chatInput.placeholder = '매칭이 결정되었습니다.';
+                    document.getElementById('chatInputArea').style.display = 'none';
+                    if (messages && messages.length > 0) {
+                        btnDeleteChat.style.display = 'flex';
+                    }
+                    return;
+                }
+
+                if (mySentCount >= MSG_LIMIT) {
+                    chatInput.disabled = true;
+                    chatSendBtn.disabled = true;
+                    chatInput.placeholder = '';
+                    chatStatusMsg.innerHTML = '<i class="ph ph-prohibit"></i> 메시지를 모두 사용했습니다. (10/10)';
+                    chatStatusMsg.style.display = 'block';
+                } else if (!isMyTurn) {
+                    chatInput.disabled = true;
+                    chatSendBtn.disabled = true;
+                    chatInput.placeholder = '';
+                    chatStatusMsg.innerHTML = '<i class="ph ph-hourglass-medium"></i> 상대방의 답장을 기다려주세요...';
+                    chatStatusMsg.style.display = 'block';
+                } else {
+                    chatInput.disabled = false;
+                    chatSendBtn.disabled = false;
+                    chatInput.placeholder = '메시지를 입력하세요... (최대 200자)';
+                    chatStatusMsg.style.display = 'none';
+                }
+            };
+
+            // 메시지 로드 + 읽음 처리
+            const loadAndRenderMessages = async () => {
+                if (!db || isSelf) return;
+
+                // 양방향 메시지 전체 로드
+                const { data: messages } = await db.from('messages')
+                    .select('*')
+                    .or(`and(from_user_id.eq.${sessionUser.id},to_user_id.eq.${targetUserId}),and(from_user_id.eq.${targetUserId},to_user_id.eq.${sessionUser.id})`)
+                    .order('created_at', { ascending: true });
+
+                // 내가 보낸 메시지 수
+                const mySentCount = (messages || []).filter(m => m.from_user_id === sessionUser.id).length;
+
+                renderMessages(messages);
+                updateChatInputState(messages, mySentCount);
+
+                // 상대가 나에게 보낸 메시지 읽음 처리
+                await db.from('messages')
+                    .update({ is_read: true })
+                    .eq('from_user_id', targetUserId)
+                    .eq('to_user_id', sessionUser.id)
+                    .eq('is_read', false);
+            };
+
+            // 채팅 영역 표시 (본인 아닌 경우만)
+            if (!isSelf) {
+                chatArea.style.display = 'block';
+                loadAndRenderMessages();
+
+                // 메시지 전송 핸들러
+                const sendMessage = async () => {
+                    const content = chatInput.value.trim();
+                    if (!content || !db) return;
+                    if (content.length > 200) {
+                        alert('메시지는 200자까지 입력 가능합니다.');
+                        return;
+                    }
+
+                    chatSendBtn.disabled = true;
+                    chatInput.disabled = true;
+
+                    const { error } = await db.from('messages').insert([{
+                        from_user_id: sessionUser.id,
+                        to_user_id: targetUserId,
+                        content: content,
+                        is_read: false
+                    }]);
+
+                    if (error) {
+                        alert('메시지 전송 실패: ' + error.message);
+                        chatSendBtn.disabled = false;
+                        chatInput.disabled = false;
+                    } else {
+                        chatInput.value = '';
+                        await loadAndRenderMessages();
+                    }
+                };
+
+                chatSendBtn.addEventListener('click', sendMessage);
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendMessage();
+                });
+
+                // 대화 기록 삭제 핸들러
+                btnDeleteChat.addEventListener('click', async () => {
+                    if (!confirm('대화 기록을 모두 삭제하시겠습니까?\n삭제된 메시지는 복구할 수 없습니다.')) return;
+
+                    // 양방향 메시지 삭제
+                    await db.from('messages').delete()
+                        .or(`and(from_user_id.eq.${sessionUser.id},to_user_id.eq.${targetUserId}),and(from_user_id.eq.${targetUserId},to_user_id.eq.${sessionUser.id})`);
+                    
+                    alert('대화 기록이 삭제되었습니다.');
+                    btnDeleteChat.style.display = 'none';
+                    renderMessages([]);
+                });
+            }
+
+            // 6. Match Action Logic
             const actionArea = document.getElementById('matchActionArea');
             const selfMsg = document.getElementById('selfProfileMsg');
 
@@ -807,6 +984,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('vPhone').innerText = targetUser?.phone || '공개 불가';
                     successMsg.style.display = 'block';
                     matchButtons.style.display = 'none';
+                    // 매칭 성공 시 메시지 영역 숨기지 않되, 입력 비활성화 (loadAndRenderMessages에서 처리됨)
                 } else if (incomingReq) {
                     // Received a request - This should have priority (even if I was previously rejected)
                     btnRequest.innerText = '매칭 수락하기';

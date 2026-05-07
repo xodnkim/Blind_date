@@ -207,6 +207,28 @@
                     <p class="view-text" id="vIdeal">...</p>
                 </div>
 
+                <!-- Message Chat Area (Hidden by default, shown via JS for non-self profiles) -->
+                <div id="messageChatArea" class="chat-section" style="display: none;">
+                    <div class="chat-header">
+                        <h4><i class="ph-fill ph-chat-circle-dots"></i> 메시지</h4>
+                        <span id="msgCountBadge" class="chat-count">0/10</span>
+                    </div>
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="chat-empty">
+                            <i class="ph ph-chat-teardrop-text"></i>
+                            매칭 전 가벼운 대화를 나눠보세요!
+                        </div>
+                    </div>
+                    <div id="chatInputArea" class="chat-input-area">
+                        <input type="text" id="chatInput" placeholder="메시지를 입력하세요... (최대 200자)" maxlength="200">
+                        <button id="chatSendBtn" class="chat-send-btn"><i class="ph-fill ph-paper-plane-right"></i></button>
+                    </div>
+                    <div id="chatStatusMsg" class="chat-status-msg" style="display: none;"></div>
+                    <button id="btnDeleteChat" class="btn-delete-chat" style="display: none;">
+                        <i class="ph ph-trash"></i> 대화 기록 삭제
+                    </button>
+                </div>
+
                 <!-- Match Action Area (Hidden by default) -->
                 <div id="matchActionArea" style="display: none; margin-top: 40px; border-top: 1px solid var(--border); padding-top: 30px; text-align: center;">
                     <div id="matchSuccessMsg" style="display: none; margin-bottom: 25px;">
