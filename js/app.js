@@ -297,6 +297,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return false;
                     };
                 }
+                // Disable Match Status button too
+                const btnMatchStatus = document.getElementById('btnMatchStatus');
+                if (btnMatchStatus) {
+                    btnMatchStatus.disabled = true;
+                    btnMatchStatus.style.opacity = '0.5';
+                    btnMatchStatus.style.cursor = 'not-allowed';
+                    btnMatchStatus.onclick = (e) => {
+                        e.preventDefault();
+                        alert('프로필을 먼저 등록해야 신청 관리가 가능합니다.');
+                        return false;
+                    };
+                }
             }
         };
         checkProfileStatus();
@@ -1179,8 +1191,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            // 6. Fetch message data for badges (unread + conversations)
+            const { data: myMessages } = await db.from('messages')
+                .select('from_user_id, to_user_id, is_read')
+                .or(`from_user_id.eq.${sessionUser.id},to_user_id.eq.${sessionUser.id}`);
+
+            // Build per-user message info
+            const msgInfoMap = {};
+            (myMessages || []).forEach(msg => {
+                const otherId = msg.from_user_id === sessionUser.id ? msg.to_user_id : msg.from_user_id;
+                if (!msgInfoMap[otherId]) msgInfoMap[otherId] = { total: 0, unread: 0 };
+                msgInfoMap[otherId].total++;
+                if (msg.to_user_id === sessionUser.id && !msg.is_read) {
+                    msgInfoMap[otherId].unread++;
+                }
+            });
+
             const grid = document.getElementById('membersGrid');
-            grid.innerHTML = filteredMembers.map(m => `
+            grid.innerHTML = filteredMembers.map(m => {
+                const info = msgInfoMap[m.user_id];
+                let badge = '';
+                if (info && info.unread > 0) {
+                    badge = `<span class="msg-badge" style="margin-left: 0; margin-top: 8px;"><i class="ph-fill ph-chat-circle-dots"></i> ${info.unread}개 새 메시지</span>`;
+                } else if (info && info.total > 0) {
+                    badge = `<span class="member-tag" style="background: rgba(67, 97, 238, 0.15); color: #4361ee; border: 1px solid rgba(67, 97, 238, 0.3); margin-top: 8px;"><i class="ph ph-chat-circle-dots" style="margin-right: 3px;"></i> 대화 중</span>`;
+                }
+                return `
                 <div class="member-card" onclick="window.location.href='profile_view.html?id=${encodeURIComponent(m.user_id)}'">
                     <div class="member-photo-blur"></div>
                     <div class="member-info">
@@ -1191,9 +1227,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <span class="member-tag">${escapeHtml(m.mbti)}</span>
                             <span class="member-tag">${escapeHtml(m.body_type)}</span>
                         </div>
+                        ${badge}
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         };
 
         loadMembers();
