@@ -430,53 +430,62 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 4.5 [추가] Today 프로필 조회수 로드
         const loadTodayViews = async () => {
-            if (!db || !sessionUser) return;
+            const currentUser = getSessionUser();
+            if (!db || !currentUser || !currentUser.id) {
+                console.log('조회수 로드 중단: DB 또는 사용자 정보 없음');
+                return;
+            }
             
-            // 로컬 시간 기준 오늘 00:00:00 계산
+            // 로컬 시간 기준 오늘 00:00:00 계산 (UTC 변환)
             const now = new Date();
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const isoToday = todayStart.toISOString();
             
-            console.log('조회수 체크 시작 시간 (UTC):', isoToday);
+            console.log(`[조회수] ${currentUser.id}의 오늘(${isoToday}) 조회수 확인 중...`);
             
-            // 오늘 내 프로필을 조회한 데이터 가져오기
-            const { data: views, error } = await db.from('profile_views')
-                .select('viewer_id')
-                .eq('target_id', sessionUser.id)
-                .gte('viewed_at', isoToday);
-            
-            if (error) {
-                console.error('조회수 로드 실패:', error);
-                return;
-            }
-            
-            console.log('오늘 조회 데이터:', views);
-            
-            // 고유 시청자 수 계산 (중복 제외)
-            const uniqueViewers = new Set((views || []).map(v => v.viewer_id)).size;
-            
-            const countEl = document.getElementById('todayViewCount');
-            const badge = document.getElementById('newViewBadge');
-            const msg = document.getElementById('viewIncrMsg');
-            
-            if (countEl) countEl.innerText = uniqueViewers;
-            
-            // 하이라이트 로직
-            const lastSeenCount = parseInt(localStorage.getItem(`lastSeenViews_${sessionUser.id}`) || '0');
-            if (uniqueViewers > lastSeenCount) {
-                if (badge) badge.style.display = 'block';
-                if (msg) msg.style.visibility = 'visible';
-            } else {
-                if (badge) badge.style.display = 'none';
-                if (msg) msg.style.visibility = 'hidden';
-            }
+            try {
+                // 오늘 내 프로필을 조회한 데이터 가져오기
+                const { data: views, error } = await db.from('profile_views')
+                    .select('viewer_id')
+                    .eq('target_id', currentUser.id)
+                    .gte('created_at', isoToday);
+                
+                if (error) {
+                    console.error('[조회수] 데이터 로드 에러:', error);
+                    return;
+                }
+                
+                // 고유 시청자 수 계산
+                const uniqueIds = new Set((views || []).map(v => v.viewer_id));
+                const uniqueCount = uniqueIds.size;
+                
+                console.log(`[조회수] 결과: 총 ${views?.length || 0}건 / 고유 ${uniqueCount}명`);
+                
+                const countEl = document.getElementById('todayViewCount');
+                const badge = document.getElementById('newViewBadge');
+                const msg = document.getElementById('viewIncrMsg');
+                
+                if (countEl) countEl.innerText = uniqueCount;
+                
+                // 하이라이트 로직
+                const lastSeenCount = parseInt(localStorage.getItem(`lastSeenViews_${currentUser.id}`) || '0');
+                if (uniqueCount > lastSeenCount) {
+                    if (badge) badge.style.display = 'block';
+                    if (msg) msg.style.visibility = 'visible';
+                } else {
+                    if (badge) badge.style.display = 'none';
+                    if (msg) msg.style.visibility = 'hidden';
+                }
 
-            window.handleViewsClick = () => {
-                localStorage.setItem(`lastSeenViews_${sessionUser.id}`, uniqueViewers);
-                if (badge) badge.style.display = 'none';
-                if (msg) msg.style.visibility = 'hidden';
-                alert('오늘 내 프로필을 ' + uniqueViewers + '명이 확인했습니다!');
-            };
+                window.handleViewsClick = () => {
+                    localStorage.setItem(`lastSeenViews_${currentUser.id}`, uniqueCount);
+                    if (badge) badge.style.display = 'none';
+                    if (msg) msg.style.visibility = 'hidden';
+                    alert(`오늘 내 프로필을 ${uniqueCount}명이 확인했습니다!`);
+                };
+            } catch (e) {
+                console.error('[조회수] 예외 발생:', e);
+            }
         };
         loadTodayViews();
 
@@ -1154,24 +1163,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             // [추가] 프로필 조회 로그 기록 (본인 제외)
             if (!isSelf && db) {
                 try {
-                    // 이번 세션에서 이미 이 프로필을 본 적이 있는지 체크 (중복 인서트 방지)
+                    // 이번 세션에서 이미 이 프로필을 본 적이 있는지 체크
                     const sessionKey = `viewed_${targetUserId}`;
                     if (!sessionStorage.getItem(sessionKey)) {
+                        console.log(`[조회기록] ${targetUserId} 조회 기록 시도...`);
                         const { error } = await db.from('profile_views').insert([{
-                            viewer_id: sessionUser.id,
-                            target_id: targetUserId,
-                            viewed_at: new Date().toISOString()
+                            viewer_id: String(sessionUser.id),
+                            target_id: String(targetUserId),
+                            created_at: new Date().toISOString()
                         }]);
                         
                         if (!error) {
                             sessionStorage.setItem(sessionKey, 'true');
-                            console.log('프로필 조회 기록 성공:', targetUserId);
+                            console.log('[조회기록] 성공:', targetUserId);
                         } else {
-                            console.error('프로필 조회 기록 에러:', error);
+                            console.error('[조회기록] 에러:', error);
                         }
                     }
                 } catch (e) {
-                    console.error('조회 로그 처리 중 예외 발생:', e);
+                    console.error('[조회기록] 예외 발생:', e);
                 }
             }
 
