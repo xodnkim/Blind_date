@@ -843,14 +843,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             (todayMatches || []).forEach(m => {
                 countMap[m.from_user_id] = (countMap[m.from_user_id] || 0) + 1;
             });
+
+            // [추가] 프로필 작성 여부 일괄 조회
+            const { data: profiles } = await db.from('profiles').select('user_id');
+            const profileSet = new Set((profiles || []).map(p => p.user_id));
             
             if (error) {
-                listBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--primary);">오류 발생: ${error.message}</td></tr>`;
+                listBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--primary);">오류 발생: ${error.message}</td></tr>`;
                 return;
             }
 
             if (!users || users.length === 0) {
-                listBody.innerHTML = `<tr><td colspan="8" style="text-align: center;">가입 대기 중인 회원이 없습니다.</td></tr>`;
+                listBody.innerHTML = `<tr><td colspan="9" style="text-align: center;">가입 대기 중인 회원이 없습니다.</td></tr>`;
                 return;
             }
 
@@ -863,6 +867,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td style="font-size: 0.9rem;">${escapeHtml(u.phone || '-')}</td>
                     <td>${escapeHtml(u.referrer || '-')}</td>
                     <td>${statusBadge}</td>
+                    <td style="color: ${profileSet.has(u.id) ? '#2ed573' : '#888'}; font-weight: bold;">
+                        ${profileSet.has(u.id) ? '✓ 작성' : '✗ 미작성'}
+                    </td>
                     <td>
                         <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                             <button class="btn-small secondary" style="padding: 2px 8px;" onclick="changeUserLimit('${u.id}', ${u.daily_limit || 2}, -1)">-</button>
