@@ -337,8 +337,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (mainSubtitle) mainSubtitle.innerText = '나와 잘 어울리는 새로운 인연을 탐색할 시간입니다.';
                 if (actionArea) {
                     actionArea.innerHTML = `
-                        <button class="btn-action secondary" onclick="window.location.href='profile_view.html'" style="flex: 1;">프로필 확인</button>
-                        <button class="btn-action" onclick="window.location.href='profile.html'" style="flex: 1;">프로필 수정</button>
+                        <button class="btn-action secondary" onclick="window.location.href='profile_view.html'" style="flex: 1; padding: 12px; font-size: 0.95rem;">프로필 확인</button>
+                        <button class="btn-action" onclick="window.location.href='profile.html'" style="flex: 1; padding: 12px; font-size: 0.95rem;">프로필 수정</button>
                     `;
                 }
             } else {
@@ -783,7 +783,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const statusBadge = u.status === 'pending' ? '<span class="badge pending">대기</span>' : '<span class="badge approved">승인됨</span>';
                 return `
                 <tr>
-                    <td style="font-size: 0.7rem; color: #888; font-family: monospace; min-width: 120px;">${escapeHtml(u.id)}</td>
+                    <td style="color: #888; font-family: monospace; min-width: 140px;">${escapeHtml(u.id)}</td>
                     <td style="font-weight: 800;">${escapeHtml(u.name)}</td>
                     <td style="font-size: 0.9rem;">${escapeHtml(u.phone || '-')}</td>
                     <td>${escapeHtml(u.referrer || '-')}</td>
