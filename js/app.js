@@ -193,6 +193,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Signup Handler ---
     const signupForm = document.getElementById('signupForm');
     if (signupForm) {
+        // 연락처 자동 하이픈 (000-0000-0000)
+        const phoneInput = document.getElementById('signupPhone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', (e) => {
+                let val = e.target.value.replace(/[^0-9]/g, '');
+                if (val.length > 11) val = val.substring(0, 11);
+                
+                if (val.length > 7) {
+                    val = val.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+                } else if (val.length > 3) {
+                    val = val.replace(/(\d{3})(\d{1,4})/, '$1-$2');
+                }
+                e.target.value = val;
+            });
+        }
+
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('signupId').value;
