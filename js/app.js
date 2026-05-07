@@ -172,6 +172,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Login Handler ---
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
+        // [추가] 이미 로그인된 상태라면 메인으로 자동 이동
+        const existingUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (existingUser) {
+            window.location.href = 'main.html';
+            return;
+        }
+
+        // 자동 로그인 기본 체크
+        const rememberCheckbox = document.getElementById('rememberMe');
+        if (rememberCheckbox) rememberCheckbox.checked = true;
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -228,11 +238,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const safeUser = { ...user };
             delete safeUser.password;
             const userData = JSON.stringify(safeUser);
-            if (rememberMe) {
-                localStorage.setItem('currentUser', userData);
-            } else {
-                sessionStorage.setItem('currentUser', userData);
-            }
+            // 항상 localStorage에 저장 (인앱 브라우저 전환 시에도 세션 유지)
+            localStorage.setItem('currentUser', userData);
             window.location.href = 'main.html';
         });
     }
