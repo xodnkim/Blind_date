@@ -622,6 +622,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                     errors.push(`이상형 설명을 20글자 이상 입력해주세요. (현재 ${vIdeal.length}글자)`);
                 }
 
+                // 사진 3장 필수 체크 (required 속성이 있는 경우에만 체크 - 신규 등록 시)
+                const p1 = document.getElementById('photo1');
+                const p2 = document.getElementById('photo2');
+                const p3 = document.getElementById('photo3');
+                
+                // 만약 edit 모드에서 이미지가 이미 로드되어 required가 해제되었다면 체크 패스
+                const isP1Missing = p1.hasAttribute('required') && !p1.files[0];
+                const isP2Missing = p2.hasAttribute('required') && !p2.files[0];
+                const isP3Missing = p3.hasAttribute('required') && !p3.files[0];
+
+                if (isP1Missing || isP2Missing || isP3Missing) {
+                    errors.push('사진은 반드시 3장 모두 등록해야 합니다.');
+                }
+
                 if (errors.length > 0) {
                     alert('⚠️ 입력값을 확인해주세요:\n\n' + errors.join('\n'));
                     return;
