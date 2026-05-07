@@ -478,25 +478,91 @@ document.addEventListener('DOMContentLoaded', async () => {
             profileForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
+                // === 입력값 유효성 검사 ===
+                const vName = document.getElementById('profileName').value.trim();
+                const vGender = document.querySelector('input[name="gender"]:checked')?.value || '';
+                const vBirthYear = document.getElementById('birthYear').value.trim();
+                const vHeight = document.getElementById('height').value.trim();
+                const vMbti = document.getElementById('mbti').value.trim().toUpperCase();
+                const vHobbies = document.getElementById('hobbies').value.trim();
+                const vIntro = document.getElementById('introMessage').value.trim();
+                const vIdeal = document.getElementById('idealType').value.trim();
+                const vJob = document.getElementById('job').value.trim();
+                const vLocation = document.getElementById('location').value.trim();
+
+                const errors = [];
+
+                // 이름: 2~10글자, 한글만
+                if (vName.length < 2 || vName.length > 10) errors.push('이름은 2~10글자로 입력해주세요.');
+                if (!/^[가-힣]+$/.test(vName)) errors.push('이름은 한글만 입력 가능합니다.');
+
+                // 성별 선택
+                if (!vGender) errors.push('성별을 선택해주세요.');
+
+                // 출생연도: 1970~2006 사이 숫자
+                const birthNum = parseInt(vBirthYear);
+                if (!vBirthYear || isNaN(birthNum) || birthNum < 1970 || birthNum > 2006) {
+                    errors.push('출생연도는 1970~2006 사이의 숫자를 입력해주세요.');
+                }
+
+                // 키: 100~250 사이 숫자
+                const heightNum = parseInt(vHeight);
+                if (!vHeight || isNaN(heightNum) || heightNum < 100 || heightNum > 250) {
+                    errors.push('키는 100~250cm 사이의 숫자를 입력해주세요.');
+                }
+
+                // MBTI: 정확한 4글자 조합
+                const validMbti = ['ISTJ','ISFJ','INFJ','INTJ','ISTP','ISFP','INFP','INTP','ESTP','ESFP','ENFP','ENTP','ESTJ','ESFJ','ENFJ','ENTJ'];
+                if (!validMbti.includes(vMbti)) {
+                    errors.push('올바른 MBTI를 입력해주세요. (예: ENFP, ISTJ)');
+                }
+
+                // 직업: 2글자 이상
+                if (vJob.length < 2) errors.push('직업/직장을 2글자 이상 입력해주세요.');
+
+                // 거주지역: 2글자 이상
+                if (vLocation.length < 2) errors.push('거주 지역을 2글자 이상 입력해주세요.');
+
+                // 관심사: 최소 3개
+                const hobbiesList = vHobbies.split(/[\s,]+/).filter(h => h.trim() !== '');
+                if (hobbiesList.length < 3) {
+                    errors.push('관심사/취미를 최소 3개 이상 입력해주세요. (띄어쓰기 또는 쉼표로 구분)');
+                }
+
+                // 자기소개: 최소 20글자
+                if (vIntro.length < 20) {
+                    errors.push(`한 줄 자기소개를 20글자 이상 입력해주세요. (현재 ${vIntro.length}글자)`);
+                }
+
+                // 이상형: 최소 20글자
+                if (vIdeal.length < 20) {
+                    errors.push(`이상형 설명을 20글자 이상 입력해주세요. (현재 ${vIdeal.length}글자)`);
+                }
+
+                if (errors.length > 0) {
+                    alert('⚠️ 입력값을 확인해주세요:\n\n' + errors.join('\n'));
+                    return;
+                }
+
                 const profileData = {
                     user_id: sessionUser.id,
-                    name: document.getElementById('profileName').value,
-                    gender: document.querySelector('input[name="gender"]:checked')?.value || '',
-                    birth_year: document.getElementById('birthYear').value,
+                    name: vName,
+                    gender: vGender,
+                    birth_year: vBirthYear,
                     body_type: document.getElementById('bodyType').value,
-                    location: document.getElementById('location').value,
-                    height: document.getElementById('height').value,
-                    job: document.getElementById('job').value,
+                    location: vLocation,
+                    height: vHeight,
+                    job: vJob,
                     job_location: document.getElementById('jobLocation').value,
-                    mbti: document.getElementById('mbti').value,
+                    mbti: vMbti,
                     smoking: document.getElementById('smoking').value,
                     drinking: document.getElementById('drinking').value,
                     tattoo: document.getElementById('tattoo').value,
                     religion: document.getElementById('religion').value,
                     long_distance: document.getElementById('longDistance').value,
-                    hobbies: document.getElementById('hobbies').value,
-                    intro_message: document.getElementById('introMessage').value,
-                    ideal_type: document.getElementById('idealType').value,
+                    hobbies: vHobbies,
+                    intro_message: vIntro,
+                    ideal_type: vIdeal,
                     updated_at: new Date().toISOString()
                 };
 
@@ -1364,7 +1430,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="user-avatar-small"><i class="ph-fill ph-user"></i></div>
                             <div class="user-details">
                                 <h4>${isNew ? '<span class="new-badge">NEW</span>' : ''}${p.name}</h4>
-                                <p>${p.birth_year}년생 · ${p.location}</p>
+                                <p>${p.birth_year}년생 · ${p.location} · ${p.height}cm</p>
+                                <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
+                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.job}</span>
+                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.mbti}</span>
+                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.body_type}</span>
+                                </div>
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
