@@ -795,37 +795,103 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.viewUserMatches = async (userId) => {
             const { data: sent } = await db.from('matches').select('*').eq('from_user_id', userId);
             const { data: received } = await db.from('matches').select('*').eq('to_user_id', userId);
-            
-            let html = '<div style="font-size: 0.9rem;">';
-            html += '<h4>보낸 신청 내역</h4>';
-            if (!sent || sent.length === 0) html += '<p>- 없음</p>';
-            else html += sent.map(m => `<p>→ To: ${m.to_user_id.substring(0,8)}... [상태: ${m.status}] "${m.message || ''}"</p>`).join('');
+            const { data: allProfiles } = await db.from('profiles').select('*');
+            const pMap = {};
+            allProfiles?.forEach(p => pMap[p.user_id] = p);
 
-            html += '<h4 style="margin-top: 15px;">받은 신청 내역</h4>';
-            if (!received || received.length === 0) html += '<p>- 없음</p>';
-            else html += received.map(m => `<p>← From: ${m.from_user_id.substring(0,8)}... [상태: ${m.status}] "${m.message || ''}"</p>`).join('');
+            const renderMatchCard = (targetId, status, msg, isFromMe) => {
+                const p = pMap[targetId];
+                if (!p) return '';
+                const badgeClass = status === 'approved' ? 'badge-success' : 'badge-pending';
+                const badgeText = status === 'approved' ? '매칭 성공' : (status === 'rejected' ? '거절됨' : '대기 중');
+                
+                return `
+                    <div class="match-item ${status === 'approved' ? 'success' : ''}" style="margin-bottom: 10px; cursor: default;">
+                        <div class="user-info">
+                            <div class="user-avatar-small"><i class="ph-fill ph-user"></i></div>
+                            <div class="user-details">
+                                <h4>${isFromMe ? '→ ' : '← '}${p.name}</h4>
+                                <p>${p.birth_year}년생 · ${p.location}</p>
+                                ${msg ? `<div style="margin-top: 5px; font-size: 0.8rem; color: #aaa; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 5px;">"${escapeHtml(msg)}"</div>` : ''}
+                            </div>
+                        </div>
+                        <span class="match-status-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                `;
+            };
+
+            let html = '<div style="max-height: 500px; overflow-y: auto;">';
+            html += '<h4 style="margin-bottom: 10px; color: var(--primary);">보낸 신청 내역</h4>';
+            if (!sent || sent.length === 0) html += '<p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">- 신청 내역 없음</p>';
+            else html += sent.map(m => renderMatchCard(m.to_user_id, m.status, m.message, true)).join('') + '<div style="margin-bottom: 20px;"></div>';
+
+            html += '<h4 style="margin-bottom: 10px; color: var(--primary);">받은 신청 내역</h4>';
+            if (!received || received.length === 0) html += '<p style="color: #666; font-size: 0.9rem;">- 받은 내역 없음</p>';
+            else html += received.map(m => renderMatchCard(m.from_user_id, m.status, m.message, false)).join('');
             html += '</div>';
 
-            openAdminModal(`${userId.substring(0,8)}... 님의 매칭 기록`, html);
+            openAdminModal(`[매칭 기록] ${userId.substring(0,8)}...`, html);
         };
 
         window.viewUserMessages = async (userId) => {
             const { data: logs } = await db.from('messages')
                 .select('*')
                 .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: true });
 
-            let html = '<div style="font-size: 0.85rem; line-height: 1.6;">';
-            if (!logs || logs.length === 0) html += '<p>대화 내역이 없습니다.</p>';
-            else html += logs.map(l => `
-                <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding: 8px 0;">
-                    <span style="color: #888;">[${new Date(l.created_at).toLocaleString()}]</span><br>
-                    <b>${l.from_user_id === userId ? 'USER' : 'OTHER'}</b>: ${escapeHtml(l.content)}
-                </div>
-            `).join('');
+            if (!logs || logs.length === 0) {
+                openAdminModal(`메시지 로그`, '<p>대화 내역이 없습니다.</p>');
+                return;
+            }
+
+            // Group by partner
+            const conversations = {};
+            logs.forEach(l => {
+                const partnerId = l.from_user_id === userId ? l.to_user_id : l.from_user_id;
+                if (!conversations[partnerId]) conversations[partnerId] = [];
+                conversations[partnerId].push(l);
+            });
+
+            // Get partner names
+            const partnerIds = Object.keys(conversations);
+            const { data: partners } = await db.from('users').select('id, name').in('id', partnerIds);
+            const nameMap = {};
+            partners?.forEach(p => nameMap[p.id] = p.name);
+
+            let html = '<div style="display: flex; gap: 20px; height: 500px;">';
+            
+            // Left: Partner List
+            html += '<div style="width: 200px; border-right: 1px solid var(--border); padding-right: 10px; overflow-y: auto;">';
+            partnerIds.forEach(pid => {
+                html += `<button class="btn-action secondary" style="width: 100%; margin-bottom: 8px; font-size: 0.85rem; text-align: left; padding: 10px;" onclick="showAdminChat('${userId}', '${pid}')">
+                    <i class="ph ph-user"></i> ${escapeHtml(nameMap[pid] || pid.substring(0,5))}
+                </button>`;
+            });
             html += '</div>';
 
-            openAdminModal(`${userId.substring(0,8)}... 님의 메시지 로그`, html);
+            // Right: Chat Window
+            html += '<div id="adminChatWindow" style="flex: 1; overflow-y: auto; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px;">';
+            html += '<p style="text-align: center; color: #666; margin-top: 100px;">대화 상대를 선택해주세요.</p>';
+            html += '</div></div>';
+
+            // Define global helper for the modal session
+            window.adminAllLogs = logs;
+            window.showAdminChat = (currentUid, partnerUid) => {
+                const chatBox = document.getElementById('adminChatWindow');
+                const chatLogs = window.adminAllLogs.filter(l => (l.from_user_id === currentUid && l.to_user_id === partnerUid) || (l.from_user_id === partnerUid && l.to_user_id === currentUid));
+                
+                chatBox.innerHTML = chatLogs.map(l => `
+                    <div style="margin-bottom: 12px; text-align: ${l.from_user_id === currentUid ? 'right' : 'left'}">
+                        <div style="font-size: 0.7rem; color: #666; margin-bottom: 3px;">${new Date(l.created_at).toLocaleString()}</div>
+                        <div style="display: inline-block; padding: 8px 12px; border-radius: 12px; background: ${l.from_user_id === currentUid ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}; color: ${l.from_user_id === currentUid ? 'white' : 'inherit'}; max-width: 80%; word-break: break-all;">
+                            ${escapeHtml(l.content)}
+                        </div>
+                    </div>
+                `).join('');
+                chatBox.scrollTop = chatBox.scrollHeight;
+            };
+
+            openAdminModal(`[메시지 로그] ${userId.substring(0,8)}...`, html);
         };
 
         loadPendingUsers();
@@ -927,8 +993,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 img.src = photos[window.currentPhotoIndex];
                 img.style.display = 'block';
 
-                // Blur logic: 매칭 전에는 placeholder에 추가 blur 적용
-                if (!isSelf && !isMatched) {
+                // Blur logic: 매칭 전에는 placeholder에 추가 blur 적용 (관리자는 예외)
+                if (!isSelf && !isMatched && sessionUser.role !== 'admin') {
                     img.classList.add('blurred');
                 } else {
                     img.classList.remove('blurred');
