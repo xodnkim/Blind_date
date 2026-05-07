@@ -792,6 +792,46 @@ document.addEventListener('DOMContentLoaded', async () => {
             `}).join('');
         };
 
+        window.approveUser = async (userId) => {
+            if (!confirm(`${userId} 님의 가입을 승인하시겠습니까?`)) return;
+            
+            const { error } = await db.from('users').update({ status: 'approved' }).eq('id', userId);
+            
+            if (error) {
+                alert('승인 처리 중 오류 발생: ' + error.message);
+            } else {
+                alert('승인되었습니다.');
+                loadPendingUsers();
+            }
+        };
+
+        window.deleteUser = async (userId) => {
+            if (!confirm(`정말 ${userId} 회원을 탈퇴 처리하시겠습니까?\n해당 회원의 프로필 및 모든 매칭 데이터가 영구적으로 삭제됩니다.`)) return;
+            
+            if (!db) return;
+
+            try {
+                // 1. 메시지 데이터 삭제
+                await db.from('messages').delete().or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
+                // 2. 매칭 데이터 삭제
+                await db.from('matches').delete().or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
+                // 3. 좋아요 데이터 삭제
+                await db.from('likes').delete().or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
+                // 4. 프로필 데이터 삭제
+                await db.from('profiles').delete().eq('user_id', userId);
+                // 5. 사용자 계정 삭제
+                const { error } = await db.from('users').delete().eq('id', userId);
+                
+                if (error) throw error;
+                
+                alert(`${userId} 회원이 성공적으로 탈퇴 처리되었습니다.`);
+                loadPendingUsers();
+            } catch (err) {
+                alert('탈퇴 처리 중 오류 발생: ' + err.message);
+                console.error(err);
+            }
+        };
+
         window.viewUserMatches = async (userId) => {
             const { data: sent } = await db.from('matches').select('*').eq('from_user_id', userId);
             const { data: received } = await db.from('matches').select('*').eq('to_user_id', userId);
