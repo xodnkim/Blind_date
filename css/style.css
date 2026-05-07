@@ -308,6 +308,46 @@ body {
     z-index: 10;
 }
 
+/* --- Notice Banner --- */
+.notice-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(255, 206, 0, 0.15), rgba(255, 153, 0, 0.1));
+    border: 1px solid rgba(255, 206, 0, 0.4);
+    border-radius: 16px;
+    padding: 14px 20px;
+    margin-bottom: 30px;
+    font-size: 0.95rem;
+    color: #ffce00;
+    animation: bannerPulse 3s ease-in-out infinite;
+}
+
+.notice-banner i {
+    font-size: 1.4rem;
+    animation: bellShake 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+.notice-banner strong {
+    color: white;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+@keyframes bannerPulse {
+    0%, 100% { border-color: rgba(255, 206, 0, 0.4); }
+    50% { border-color: rgba(255, 206, 0, 0.8); box-shadow: 0 0 15px rgba(255, 206, 0, 0.1); }
+}
+
+@keyframes bellShake {
+    0%, 100% { transform: rotate(0deg); }
+    10% { transform: rotate(15deg); }
+    20% { transform: rotate(-10deg); }
+    30% { transform: rotate(8deg); }
+    40% { transform: rotate(0deg); }
+}
+
 .dashboard-header {
     margin-bottom: 50px;
     position: relative;
