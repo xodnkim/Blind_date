@@ -738,6 +738,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             logoutBtn.addEventListener('click', logout);
         }
 
+        const openAdminModal = (title, bodyHtml) => {
+            document.getElementById('adminModalTitle').innerText = title;
+            document.getElementById('adminModalBody').innerHTML = bodyHtml;
+            document.getElementById('adminModalOverlay').style.display = 'flex';
+        };
+        window.closeAdminModal = () => {
+            document.getElementById('adminModalOverlay').style.display = 'none';
+        };
+
         const loadPendingUsers = async () => {
             const listBody = document.getElementById('adminUserList');
             if (!listBody || !db) return;
@@ -745,71 +754,78 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { data: users, error } = await db.from('users').select('*').order('created_at', { ascending: false });
             
             if (error) {
-                listBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--primary);">오류 발생: ${error.message}</td></tr>`;
+                listBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--primary);">오류 발생: ${error.message}</td></tr>`;
                 return;
             }
 
             if (!users || users.length === 0) {
-                listBody.innerHTML = `<tr><td colspan="6" style="text-align: center;">가입 대기 중인 회원이 없습니다.</td></tr>`;
+                listBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">가입 대기 중인 회원이 없습니다.</td></tr>`;
                 return;
             }
 
-            listBody.innerHTML = users.map(u => `
+            listBody.innerHTML = users.map(u => {
+                const statusBadge = u.status === 'pending' ? '<span class="badge pending">대기</span>' : '<span class="badge approved">승인됨</span>';
+                return `
                 <tr>
-                    <td>${escapeHtml(u.id)}</td>
-                    <td>${escapeHtml(u.name)}</td>
-                    <td>${escapeHtml(u.phone || '-')}</td>
+                    <td style="font-size: 0.8rem; color: #888;">${escapeHtml(u.id.substring(0,8))}...</td>
+                    <td style="font-weight: 800;">${escapeHtml(u.name)}</td>
+                    <td style="font-size: 0.9rem;">${escapeHtml(u.phone || '-')}</td>
                     <td>${escapeHtml(u.referrer || '-')}</td>
-                    <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn-small secondary" onclick="window.location.href='profile_view.html?id=${u.id}'" title="원본 프로필 보기"><i class="ph ph-user-focus"></i></button>
+                            <button class="btn-small secondary" onclick="viewUserMatches('${u.id}')" title="신청/매칭 내역"><i class="ph ph-arrows-left-right"></i></button>
+                            <button class="btn-small secondary" onclick="viewUserMessages('${u.id}')" title="메시지 로그"><i class="ph ph-chat-text"></i></button>
+                        </div>
+                    </td>
                     <td>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             ${u.status === 'pending'
-                                ? `<button class="btn-small" onclick="approveUser('${escapeHtml(u.id)}')">승인하기</button>`
-                                : `<span class="badge approved" style="margin-right: 0;">승인완료</span>`
+                                ? `<button class="btn-small" onclick="approveUser('${escapeHtml(u.id)}')">승인</button>`
+                                : ``
                             }
-                            ${u.role !== 'admin' ? `<button class="btn-small" style="background: rgba(255, 77, 109, 0.1); color: #ff4d6d; border: 1px solid rgba(255, 77, 109, 0.3);" onclick="deleteUser('${escapeHtml(u.id)}')"><i class="ph ph-user-minus"></i> 탈퇴</button>` : ''}
+                            ${u.role !== 'admin' ? `<button class="btn-small" style="background: rgba(255, 77, 109, 0.1); color: #ff4d6d; border: 1px solid rgba(255, 77, 109, 0.3);" onclick="deleteUser('${escapeHtml(u.id)}')">삭제</button>` : ''}
                         </div>
                     </td>
                 </tr>
+            `}).join('');
+        };
+
+        window.viewUserMatches = async (userId) => {
+            const { data: sent } = await db.from('matches').select('*').eq('from_user_id', userId);
+            const { data: received } = await db.from('matches').select('*').eq('to_user_id', userId);
+            
+            let html = '<div style="font-size: 0.9rem;">';
+            html += '<h4>보낸 신청 내역</h4>';
+            if (!sent || sent.length === 0) html += '<p>- 없음</p>';
+            else html += sent.map(m => `<p>→ To: ${m.to_user_id.substring(0,8)}... [상태: ${m.status}] "${m.message || ''}"</p>`).join('');
+
+            html += '<h4 style="margin-top: 15px;">받은 신청 내역</h4>';
+            if (!received || received.length === 0) html += '<p>- 없음</p>';
+            else html += received.map(m => `<p>← From: ${m.from_user_id.substring(0,8)}... [상태: ${m.status}] "${m.message || ''}"</p>`).join('');
+            html += '</div>';
+
+            openAdminModal(`${userId.substring(0,8)}... 님의 매칭 기록`, html);
+        };
+
+        window.viewUserMessages = async (userId) => {
+            const { data: logs } = await db.from('messages')
+                .select('*')
+                .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+                .order('created_at', { ascending: false });
+
+            let html = '<div style="font-size: 0.85rem; line-height: 1.6;">';
+            if (!logs || logs.length === 0) html += '<p>대화 내역이 없습니다.</p>';
+            else html += logs.map(l => `
+                <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding: 8px 0;">
+                    <span style="color: #888;">[${new Date(l.created_at).toLocaleString()}]</span><br>
+                    <b>${l.from_user_id === userId ? 'USER' : 'OTHER'}</b>: ${escapeHtml(l.content)}
+                </div>
             `).join('');
-        };
+            html += '</div>';
 
-        window.approveUser = async (userId) => {
-            if (!confirm(`${userId} 님의 가입을 승인하시겠습니까?`)) return;
-            
-            const { error } = await db.from('users').update({ status: 'approved' }).eq('id', userId);
-            
-            if (error) {
-                alert('승인 처리 중 오류 발생: ' + error.message);
-            } else {
-                alert('승인되었습니다.');
-                loadPendingUsers();
-            }
-        };
-
-        window.deleteUser = async (userId) => {
-            if (!confirm(`정말 ${userId} 회원을 탈퇴 처리하시겠습니까?\n해당 회원의 프로필 및 모든 매칭 데이터가 영구적으로 삭제됩니다.`)) return;
-            
-            if (!db) return;
-
-            try {
-                // 1. 매칭 데이터 삭제 (보낸 것, 받은 것 모두)
-                await db.from('matches').delete().or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
-                
-                // 2. 프로필 데이터 삭제
-                await db.from('profiles').delete().eq('user_id', userId);
-                
-                // 3. 사용자 계정 삭제
-                const { error } = await db.from('users').delete().eq('id', userId);
-                
-                if (error) throw error;
-                
-                alert(`${userId} 회원이 성공적으로 탈퇴 처리되었습니다.`);
-                loadPendingUsers();
-            } catch (err) {
-                alert('탈퇴 처리 중 오류 발생: ' + err.message);
-                console.error(err);
-            }
+            openAdminModal(`${userId.substring(0,8)}... 님의 메시지 로그`, html);
         };
 
         loadPendingUsers();
@@ -892,8 +908,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const PLACEHOLDER_PHOTO = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" fill="%23333"><rect width="400" height="400" fill="%231a1a2e"/><text x="200" y="185" text-anchor="middle" fill="%23666" font-size="48">🔒</text><text x="200" y="230" text-anchor="middle" fill="%23666" font-size="16">매칭 후 공개됩니다</text></svg>');
             const allPhotos = [profile.photo1, profile.photo2, profile.photo3].filter(p => p);
             
-            // 매칭되었거나 본인 프로필인 경우에만 실제 URL 사용
-            const photos = (isSelf || isMatched) ? allPhotos : allPhotos.map(() => PLACEHOLDER_PHOTO);
+            // 매칭되었거나 본인 프로필이거나 관리자인 경우에만 실제 URL 사용
+            const photos = (isSelf || isMatched || sessionUser.role === 'admin') ? allPhotos : allPhotos.map(() => PLACEHOLDER_PHOTO);
             window.profilePhotos = photos;
             window.currentPhotoIndex = 0;
 

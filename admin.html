@@ -32,13 +32,15 @@
     <main class="main-container">
         
         <header class="dashboard-header">
-            <h1 class="page-title">회원 가입 승인 관리 👥</h1>
-            <p class="page-subtitle">새로 가입을 요청한 회원들의 지인 정보를 확인하고 승인해주세요.</p>
-            <button id="testTelegramBtn" class="btn-action secondary" style="max-width: 200px; margin-top: 15px; font-size: 0.9rem; padding: 10px 20px;">텔레그램 알림 테스트</button>
+            <h1 class="page-title">회원 관리 👥</h1>
+            <p class="page-subtitle">서비스를 이용 중인 모든 회원의 상세 정보를 관리하고 승인/정지할 수 있습니다.</p>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button id="testTelegramBtn" class="btn-action secondary" style="max-width: 200px; font-size: 0.9rem; padding: 10px 20px;">텔레그램 테스트</button>
+            </div>
         </header>
 
         <!-- Admin Table Card -->
-        <div class="feature-card" style="width: 100%; max-width: 1000px; margin: 0 auto; padding: 20px;">
+        <div class="feature-card" style="width: 100%; max-width: 1100px; margin: 0 auto; padding: 20px;">
             <div class="table-responsive">
                 <table class="admin-table">
                     <thead>
@@ -46,15 +48,16 @@
                             <th>아이디</th>
                             <th>이름</th>
                             <th>연락처</th>
-                            <th>추천인(지인)</th>
-                            <th>가입일시</th>
-                            <th>상태 / 관리</th>
+                            <th>추천인</th>
+                            <th>상태</th>
+                            <th>데이터 관리</th>
+                            <th>승인 / 탈퇴</th>
                         </tr>
                     </thead>
                     <tbody id="adminUserList">
-                        <!-- Users will be loaded here dynamically -->
+                        <!-- Users loaded here -->
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 20px;">로딩 중...</td>
+                            <td colspan="7" style="text-align: center; padding: 20px;">로딩 중...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -62,6 +65,19 @@
         </div>
 
     </main>
+
+    <!-- Admin Detail Modals (Feature 4) -->
+    <div id="adminModalOverlay" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-title" id="adminModalTitle">상세 기록 확인</div>
+            <div id="adminModalBody" style="margin-top: 15px;">
+                <!-- Content injected by JS -->
+            </div>
+            <div class="modal-actions" style="margin-top: 25px;">
+                <button class="btn-action secondary" onclick="closeAdminModal()">닫기</button>
+            </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="js/supabase_config.js"></script>
