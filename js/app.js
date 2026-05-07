@@ -1437,6 +1437,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Event Listeners
                 btnRequest.onclick = async () => {
                     if (myRequestStatus === 'pending') return;
+
+                    // [추가] 하루 매칭 신청 제한 (2회) - 수락(incomingReq)이 아닌 경우에만 체크
+                    if (!incomingReq) {
+                        const todayStart = new Date();
+                        todayStart.setHours(0, 0, 0, 0);
+                        
+                        const { count, error: countError } = await db.from('matches')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('from_user_id', sessionUser.id)
+                            .gte('created_at', todayStart.toISOString());
+                        
+                        if (!countError && count >= 2) {
+                            alert('⚠️ 오늘 매칭 신청 가능 횟수(2회)를 모두 소진하셨습니다.\n내일 자정 이후에 다시 신청해주세요!');
+                            return;
+                        }
+                    }
                     
                     if (mutual && mutual.status === 'rejected') {
                         // REMATCH LOGIC: Clear the slate and start a new request
