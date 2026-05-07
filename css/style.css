@@ -19,22 +19,27 @@
     font-family: 'Outfit', sans-serif;
 }
 
-html, body {
-    overflow-x: hidden;
-    width: 100%;
+html {
+    scroll-behavior: smooth;
+    overflow-y: auto;
 }
 
 body {
     background-color: var(--bg-dark);
     color: var(--text-main);
     min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+/* Auth Pages (Centering Login/Signup) */
+.auth-body {
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow-y: auto; 
-    overflow-x: hidden;
-    position: relative;
-    padding: 0;
+    padding: 24px;
 }
 
 /* --- Trendy Background Blobs --- */
@@ -239,10 +244,7 @@ body {
 
 /* --- Dashboard Layout --- */
 .dashboard-body {
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 0;
+    display: block;
 }
 
 .navbar {
