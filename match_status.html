@@ -48,7 +48,6 @@
         }
 
         .match-item.success {
-            border-color: #ffce00;
             background: rgba(255, 206, 0, 0.05);
         }
 
@@ -96,6 +95,12 @@
             border: 2px solid var(--primary);
             box-shadow: 0 0 15px var(--primary-glow);
             animation: pulse-bg 2s infinite;
+        }
+
+        /* 매칭 성공(Success) + 새로운 알림(New) 일때는 노란색 테두리 우선 */
+        .match-item.success.is-new {
+            border: 2px solid #ffce00 !important;
+            box-shadow: 0 0 15px rgba(255, 206, 0, 0.4) !important;
         }
 
         @keyframes pulse-bg {
