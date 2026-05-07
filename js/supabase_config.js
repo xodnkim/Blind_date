@@ -2,9 +2,7 @@
 const SUPABASE_URL = 'https://tgadwymewkfztonyjxur.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_t0OqQc9Rh1HI_A8gN8k8fg_I-Kl9j5Q';
 
-// Telegram Configuration
-window.TELEGRAM_TOKEN = '8600992125:AAGR36cuMHt7eycfPcVKGtinyqBva8O_AGo';
-window.TELEGRAM_CHAT_ID = '5032978316';
+// Telegram 설정은 서버 환경변수에서 관리됩니다. (api/notify.js 참고)
 
 try {
     if (typeof supabase !== 'undefined') {

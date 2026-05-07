@@ -25,31 +25,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // --- 텔레그램 알림 전송 함수 ---
+    // --- 텔레그램 알림 전송 함수 (서버리스 함수 경유, 토큰 브라우저 노출 없음) ---
     const sendTelegramMessage = async (message) => {
-        const token = window.TELEGRAM_TOKEN;
-        const chatId = window.TELEGRAM_CHAT_ID;
-        if (!token || !chatId) return;
-
-        const url = `https://api.telegram.org/bot${token}/sendMessage`;
         try {
-            await fetch(url, {
+            await fetch('/api/notify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: message,
-                    parse_mode: 'HTML'
-                })
+                body: JSON.stringify({ message })
             });
         } catch (e) {
             console.error("Telegram Notification Failed:", e);
         }
     };
 
-    // --- Admin Credentials (Hardcoded for initial setup) ---
-    const ADMIN_ID = "xodn9900";
-    const ADMIN_PW = "dkvmflzk12!";
 
     // --- Login Handler ---
     const loginForm = document.getElementById('loginForm');
@@ -58,16 +46,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             const idInput = document.getElementById('username').value;
             const pwInput = document.getElementById('password').value;
-            
-            // 1. Check Hardcoded Admin
-            if (idInput === ADMIN_ID && pwInput === ADMIN_PW) {
-                alert("관리자 계정으로 로그인합니다.");
-                sessionStorage.setItem('currentUser', JSON.stringify({ id: ADMIN_ID, name: '관리자', role: 'admin' }));
-                window.location.href = 'main.html'; 
-                return;
-            }
 
-            // 2. Check Supabase DB
+            // DB 인증 (관리자 포함 모두 DB로 처리)
             if (!db) {
                 alert('데이터베이스 연결이 설정되지 않았습니다.');
                 return;
