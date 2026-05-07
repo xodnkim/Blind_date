@@ -91,10 +91,49 @@
     </nav>
 
     <main class="main-container">
-        <header class="dashboard-header">
-            <h1 class="page-title">새로운 인연 탐색 ✨</h1>
-            <p class="page-subtitle">사진은 매칭 성공 시에만 공개됩니다.</p>
+        <header class="dashboard-header" style="margin-bottom: 20px;">
+            <h1 class="page-title">새로운 인연 찾기 ✨</h1>
+            <p class="page-subtitle">나와 잘 어울리는 상대를 탐색해보세요.</p>
         </header>
+
+        <!-- 필터 섹션 (기능 2번) -->
+        <section class="filter-section" style="margin-bottom: 25px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <div class="filter-group" style="flex: 1; min-width: 120px;">
+                    <label style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 4px;">지역</label>
+                    <select id="filterLocation" style="width: 100%; background: #1a1a2e; color: white; border: 1px solid #333; border-radius: 6px; padding: 6px;">
+                        <option value="">모든 지역</option>
+                        <option value="서울">서울</option>
+                        <option value="경기">경기</option>
+                        <option value="인천">인천</option>
+                        <option value="부산">부산</option>
+                        <option value="대구">대구</option>
+                        <option value="광주">광주</option>
+                        <option value="대전">대전</option>
+                        <option value="울산">울산</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="flex: 1; min-width: 120px;">
+                    <label style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 4px;">나이대</label>
+                    <select id="filterAge" style="width: 100%; background: #1a1a2e; color: white; border: 1px solid #333; border-radius: 6px; padding: 6px;">
+                        <option value="">모든 연령</option>
+                        <option value="20">20대</option>
+                        <option value="30">30대</option>
+                        <option value="40">40대 이상</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="flex: 1; min-width: 120px;">
+                    <label style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 4px;">정렬</label>
+                    <select id="filterSort" style="width: 100%; background: #1a1a2e; color: white; border: 1px solid #333; border-radius: 6px; padding: 6px;">
+                        <option value="recent">최신순</option>
+                        <option value="birth_asc">나이 적은순</option>
+                        <option value="birth_desc">나이 많은순</option>
+                    </select>
+                </div>
+                <button id="btnApplyFilter" class="btn-action" style="padding: 10px 20px; font-size: 0.9rem; margin-top: 18px;">적용</button>
+            </div>
+        </section>
 
         <div id="loadingArea" class="loading-container">
             <i class="ph-fill ph-spinner ph-spin" style="font-size: 2rem;"></i>

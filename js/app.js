@@ -447,6 +447,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setVal('hobbies', profile.hobbies);
                 setVal('introMessage', profile.intro_message);
                 setVal('idealType', profile.ideal_type);
+                
+                // 프롬프트 (기능 1번)
+                setVal('prompt1', profile.prompt1);
+                setVal('answer1', profile.answer1);
+                setVal('prompt2', profile.prompt2);
+                setVal('answer2', profile.answer2);
+                setVal('prompt3', profile.prompt3);
+                setVal('answer3', profile.answer3);
 
                 // 라디오 버튼 (성별) 채우기
                 if (profile.gender) {
@@ -563,6 +571,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     hobbies: vHobbies,
                     intro_message: vIntro,
                     ideal_type: vIdeal,
+                    prompt1: document.getElementById('prompt1').value,
+                    answer1: document.getElementById('answer1').value.trim(),
+                    prompt2: document.getElementById('prompt2').value,
+                    answer2: document.getElementById('answer2').value.trim(),
+                    prompt3: document.getElementById('prompt3').value,
+                    answer3: document.getElementById('answer3').value.trim(),
                     updated_at: new Date().toISOString()
                 };
 
@@ -803,6 +817,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (myRequestStatus === 'pending' && mutual && mutual.status === 'pending') {
                     isMatched = true;
                 }
+
+                // 나를 좋아요 했는지 확인 (기능 3번)
+                const { data: likedMe } = await db.from('likes').select('id').eq('from_user_id', targetUserId).eq('to_user_id', sessionUser.id).maybeSingle();
+                if (likedMe) {
+                    const banner = document.getElementById('likedBanner');
+                    if (banner) banner.style.display = 'block';
+                }
             }
 
             document.getElementById('profileViewCard').style.display = 'block';
@@ -885,6 +906,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             document.getElementById('vIntro').innerText = profile.intro_message;
             document.getElementById('vIdeal').innerText = profile.ideal_type;
+
+            // 프롬프트 표시 (기능 1번)
+            const promptsArea = document.getElementById('vPromptsArea');
+            let hasPrompt = false;
+            for (let i = 1; i <= 3; i++) {
+                const q = profile[`prompt${i}`];
+                const a = profile[`answer${i}`];
+                if (q && a) {
+                    hasPrompt = true;
+                    const el = document.getElementById(`vPrompt${i}`);
+                    el.querySelector('.prompt-q').innerText = q;
+                    el.querySelector('.prompt-a').innerText = a;
+                    el.style.display = 'block';
+                }
+            }
+            if (hasPrompt && promptsArea) promptsArea.style.display = 'block';
 
             const hobbiesArea = document.getElementById('vHobbiesArea');
             if (profile.hobbies) {
@@ -1190,11 +1227,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                             showMatchSuccess();
                         }
                     } else {
-                        // New request (첫 매칭 신청)
+                        // New request (첫 매칭 신청) - 기능 7번: 메시지 입력
+                        const msg = prompt('상대방에게 보낼 한 줄 메시지를 입력해주세요!\n(성의 있는 메시지는 수락 확률을 높입니다.)');
+                        if (msg === null) return; // 취소
+
                         const { error } = await db.from('matches').upsert([{ 
                             from_user_id: sessionUser.id, 
                             to_user_id: targetUserId, 
-                            status: 'pending' 
+                            status: 'pending',
+                            message: msg 
                         }]);
                         
                         if (error) {
@@ -1304,9 +1345,51 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
+            // 7. Apply Filters (기능 2번)
+            const fLoc = document.getElementById('filterLocation')?.value;
+            const fAge = document.getElementById('filterAge')?.value;
+            const fSort = document.getElementById('filterSort')?.value;
+
+            let finalMembers = filteredMembers;
+
+            if (fLoc) {
+                finalMembers = finalMembers.filter(m => m.location.includes(fLoc));
+            }
+            if (fAge) {
+                const currentYear = new Date().getFullYear();
+                finalMembers = finalMembers.filter(m => {
+                    const age = currentYear - parseInt(m.birth_year) + 1;
+                    if (fAge === '20') return age >= 20 && age < 30;
+                    if (fAge === '30') return age >= 30 && age < 40;
+                    if (fAge === '40') return age >= 40;
+                    return true;
+                });
+            }
+
+            // 정렬
+            if (fSort === 'birth_asc') {
+                finalMembers.sort((a, b) => b.birth_year - a.birth_year);
+            } else if (fSort === 'birth_desc') {
+                finalMembers.sort((a, b) => a.birth_year - b.birth_year);
+            } else {
+                // recent (default) - updated_at 기준
+                finalMembers.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+            }
+
+            if (finalMembers.length === 0) {
+                document.getElementById('noMembersMsg').style.display = 'block';
+                document.getElementById('membersGrid').innerHTML = '';
+                return;
+            }
+
+            // 8. Fetch my Likes (기능 3번)
+            const { data: myLikes } = await db.from('likes').select('to_user_id').eq('from_user_id', sessionUser.id);
+            const likedUserIds = (myLikes || []).map(l => l.to_user_id);
+
             const grid = document.getElementById('membersGrid');
-            grid.innerHTML = filteredMembers.map(m => {
+            grid.innerHTML = finalMembers.map(m => {
                 const info = msgInfoMap[m.user_id];
+                const isLiked = likedUserIds.includes(m.user_id);
                 let badge = '';
                 if (info && info.unread > 0) {
                     badge = `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);"><span class="msg-badge" style="margin-left: 0;"><i class="ph-fill ph-chat-circle-dots"></i> ${info.unread}개 새 메시지</span></div>`;
@@ -1316,6 +1399,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return `
                 <div class="member-card" onclick="window.location.href='profile_view.html?id=${encodeURIComponent(m.user_id)}'">
                     <div class="member-photo-blur"></div>
+                    <button class="btn-like ${isLiked ? 'active' : ''}" onclick="event.stopPropagation(); toggleLike('${m.user_id}', this)" title="관심 있어요">
+                        <i class="${isLiked ? 'ph-fill' : 'ph'} ph-heart"></i>
+                    </button>
                     <div class="member-info">
                         <div class="member-name-age">${escapeHtml(m.name)} <span style="font-weight: 400; color: #888;">· ${escapeHtml(m.birth_year)}년생</span></div>
                         <div style="color: var(--text-muted); font-size: 0.9rem;">${escapeHtml(m.location)} · ${escapeHtml(m.height)}cm</div>
@@ -1331,7 +1417,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             }).join('');
         };
 
+        // 좋아요 토글 (기능 3번)
+        window.toggleLike = async (targetId, btn) => {
+            if (!db || !sessionUser) return;
+            const icon = btn.querySelector('i');
+            const isActive = btn.classList.contains('active');
+
+            if (isActive) {
+                // 취소
+                const { error } = await db.from('likes').delete().eq('from_user_id', sessionUser.id).eq('to_user_id', targetId);
+                if (!error) {
+                    btn.classList.remove('active');
+                    icon.className = 'ph ph-heart';
+                }
+            } else {
+                // 추가
+                const { error } = await db.from('likes').insert([{ from_user_id: sessionUser.id, to_user_id: targetId }]);
+                if (!error) {
+                    btn.classList.add('active');
+                    icon.className = 'ph-fill ph-heart';
+                    // 애니메이션 효과
+                    btn.style.transform = 'scale(1.3)';
+                    setTimeout(() => btn.style.transform = '', 200);
+                }
+            }
+        };
+
         loadMembers();
+
+        // 필터 적용 핸들러 (기능 2번)
+        const btnApplyFilter = document.getElementById('btnApplyFilter');
+        if (btnApplyFilter) {
+            btnApplyFilter.addEventListener('click', loadMembers);
+        }
     }
 
     // --- Match Status Page Logic ---
@@ -1424,6 +1542,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     finalBadgeClass = '';
                 }
 
+                // 신청 메시지 (기능 7번)
+                let matchMsgHtml = '';
+                if (rReq && rReq.message && !isMatched) {
+                    matchMsgHtml = `<div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; color: #ddd; border-left: 3px solid var(--primary);">
+                        <i class="ph-fill ph-chat-circle-dots" style="color: var(--primary); margin-right: 4px;"></i> "${escapeHtml(rReq.message)}"
+                    </div>`;
+                }
+
                 return `
                     <div class="match-item ${isMatched ? 'success' : ''} ${isNew ? 'is-new' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
                         <div class="user-info">
@@ -1436,6 +1562,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.mbti}</span>
                                     <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.body_type}</span>
                                 </div>
+                                ${matchMsgHtml}
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">

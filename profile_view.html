@@ -159,6 +159,11 @@
     <!-- Main Content -->
     <main class="main-container">
         
+        <!-- 관심 표시 배너 (기능 3번) -->
+        <div id="likedBanner" class="match-success-msg" style="display: none; background: rgba(255, 77, 109, 0.15); border: 1px solid rgba(255, 77, 109, 0.3); color: #ff4d6d; margin-bottom: 20px; padding: 15px; border-radius: 12px; text-align: center;">
+            <i class="ph-fill ph-heart"></i> 이 분이 당신에게 관심을 표시했습니다!
+        </div>
+        
         <div class="profile-view-card" id="profileViewCard" style="display: none;">
             
             <div class="view-photos" id="vPhotoContainer">
@@ -177,6 +182,22 @@
                     </div>
                     <div class="view-age-location">
                         <span id="vAge">00년생</span> · <span id="vLocation">지역</span> · <span id="vHeight">000cm</span> · <span id="vBodyTypeTop">보통</span>
+                    </div>
+                </div>
+
+                <!-- 프로필 질문 카드 (기능 1번) -->
+                <div id="vPromptsArea" style="display: none; margin-bottom: 25px;">
+                    <div id="vPrompt1" class="prompt-card" style="display: none; background: rgba(255,255,255,0.03); border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--primary);">
+                        <div class="prompt-q" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; margin-bottom: 5px;">질문</div>
+                        <div class="prompt-a" style="font-size: 1rem; color: white;">답변</div>
+                    </div>
+                    <div id="vPrompt2" class="prompt-card" style="display: none; background: rgba(255,255,255,0.03); border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--primary);">
+                        <div class="prompt-q" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; margin-bottom: 5px;">질문</div>
+                        <div class="prompt-a" style="font-size: 1rem; color: white;">답변</div>
+                    </div>
+                    <div id="vPrompt3" class="prompt-card" style="display: none; background: rgba(255,255,255,0.03); border-radius: 12px; padding: 15px; border-left: 4px solid var(--primary);">
+                        <div class="prompt-q" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; margin-bottom: 5px;">질문</div>
+                        <div class="prompt-a" style="font-size: 1rem; color: white;">답변</div>
                     </div>
                 </div>
 
