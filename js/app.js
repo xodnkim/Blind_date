@@ -1110,8 +1110,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                             alert('매칭 신청을 다시 보냈습니다!');
                             window.location.href = 'main.html';
                         }
+                    } else if (incomingReq) {
+                        // Accepting incoming request → 매칭 수락
+                        const { error } = await db.from('matches').upsert([{ 
+                            from_user_id: sessionUser.id, 
+                            to_user_id: targetUserId, 
+                            status: 'pending' 
+                        }]);
+                        
+                        if (error) {
+                            alert('수락 중 오류 발생: ' + error.message);
+                        } else {
+                            showMatchSuccess();
+                        }
                     } else {
-                        // New request or accepting incoming
+                        // New request (첫 매칭 신청)
                         const { error } = await db.from('matches').upsert([{ 
                             from_user_id: sessionUser.id, 
                             to_user_id: targetUserId, 
@@ -1121,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (error) {
                             alert('신청 중 오류 발생: ' + error.message);
                         } else {
-                            alert('매칭 신청을 보냈습니다!');
+                            alert('매칭 신청을 보냈습니다! 상대방의 수락을 기다려주세요.');
                             window.location.href = 'main.html';
                         }
                     }
