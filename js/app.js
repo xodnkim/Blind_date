@@ -56,6 +56,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
 
+    // --- 커스텀 모달 (Feature 3) ---
+    const showCustomModal = ({ title, desc, placeholder, confirmText, cancelText }) => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.style.display = 'flex';
+            
+            overlay.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-title"><i class="ph-fill ph-chat-circle-dots"></i> ${title}</div>
+                    <div class="modal-desc">${desc}</div>
+                    <input type="text" class="modal-input" placeholder="${placeholder}" id="modalInput">
+                    <div class="modal-actions">
+                        <button class="btn-action secondary" id="modalCancel" style="flex: 1;">${cancelText}</button>
+                        <button class="btn-action" id="modalConfirm" style="flex: 1;">${confirmText}</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            const input = overlay.querySelector('#modalInput');
+            input.focus();
+
+            const close = (val) => {
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    if (document.body.contains(overlay)) {
+                        document.body.removeChild(overlay);
+                    }
+                    resolve(val);
+                }, 300);
+            };
+
+            overlay.querySelector('#modalConfirm').onclick = () => close(input.value.trim());
+            overlay.querySelector('#modalCancel').onclick = () => close(null);
+            overlay.onclick = (e) => { if (e.target === overlay) close(null); };
+            input.onkeypress = (e) => { if (e.key === 'Enter') close(input.value.trim()); };
+        });
+    };
+
     // --- 브루트포스 방어: 로그인 실패 횟수 추적 ---
     const LOGIN_MAX_ATTEMPTS = 5;
     const LOGIN_LOCK_DURATION = 3 * 60 * 1000; // 3분 잠금
@@ -369,6 +409,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
         checkNotifications();
+
+        // 5-1. Check for Likes Received (Feature 2)
+        const checkLikes = async () => {
+            if (!db || !sessionUser) return;
+            const { count } = await db.from('likes').select('id', { count: 'exact', head: true }).eq('to_user_id', sessionUser.id);
+            
+            if (count && count > 0) {
+                const btnFindDate = document.getElementById('btnFindDate');
+                if (btnFindDate && !btnFindDate.innerHTML.includes('like-badge')) {
+                    btnFindDate.innerHTML += ` <span class="like-badge"><i class="ph-fill ph-heart"></i> ${count}</span>`;
+                }
+            }
+        };
+        checkLikes();
 
         // 6. Check for Unread Messages
         const checkUnreadMessages = async () => {
@@ -1227,8 +1281,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                             showMatchSuccess();
                         }
                     } else {
-                        // New request (첫 매칭 신청) - 기능 7번: 메시지 입력
-                        const msg = prompt('상대방에게 보낼 한 줄 메시지를 입력해주세요!\n(성의 있는 메시지는 수락 확률을 높입니다.)');
+                        // New request (첫 매칭 신청) - 기능 7번: 커스텀 모달 사용
+                        const msg = await showCustomModal({
+                            title: '매칭 신청 메시지',
+                            desc: '상대방에게 보낼 한 줄 메시지를 입력해주세요.<br>정성스러운 메시지는 성사 확률을 높여줍니다!',
+                            placeholder: '예: MBTI가 같아서 친해지고 싶어요!',
+                            confirmText: '신청하기',
+                            cancelText: '취소'
+                        });
+
                         if (msg === null) return; // 취소
 
                         const { error } = await db.from('matches').upsert([{ 
@@ -1241,6 +1302,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (error) {
                             alert('신청 중 오류 발생: ' + error.message);
                         } else {
+                            // 좋아요가 있었다면 자동 삭제 (매칭으로 전환되므로)
+                            await db.from('likes').delete().eq('from_user_id', sessionUser.id).eq('to_user_id', targetUserId);
+                            
                             alert('매칭 신청을 보냈습니다! 상대방의 수락을 기다려주세요.');
                             window.location.href = 'main.html';
                         }
@@ -1487,6 +1551,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sentItems = [];
             const matchedIds = [];
             const currentRecordIds = []; // All IDs currently visible
+
+            // Identify Likes Received (Feature 2)
+            const { data: myLikesRec } = await db.from('likes').select('*').eq('to_user_id', sessionUser.id);
+            const likeRecList = document.getElementById('likeRecList'); // HTML에 추가 필요
+            if (likeRecList) {
+                if (myLikesRec && myLikesRec.length > 0) {
+                    likeRecList.innerHTML = myLikesRec.map(l => renderItem(l.from_user_id, '나를 좋아함', 'badge-success', false, false, false)).join('');
+                    document.getElementById('likeSection').style.display = 'block';
+                } else {
+                    document.getElementById('likeSection').style.display = 'none';
+                }
+            }
 
             // Identify Mutual Matches
             sent?.forEach(s => {
