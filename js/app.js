@@ -318,7 +318,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!db || !sessionUser) return;
             
             const lastViewed = localStorage.getItem(`lastViewedMatches_${sessionUser.id}`);
-            if (!lastViewed) return;
+            
+            // lastViewed가 없으면 (신청관리 미방문) → 받은 pending 요청이 있는지 직접 확인
+            if (!lastViewed) {
+                const { data: pendingReceived } = await db.from('matches')
+                    .select('id')
+                    .eq('to_user_id', sessionUser.id)
+                    .eq('status', 'pending')
+                    .limit(1);
+                
+                if (pendingReceived && pendingReceived.length > 0) {
+                    const btnMatchStatus = document.getElementById('btnMatchStatus');
+                    if (btnMatchStatus) {
+                        btnMatchStatus.classList.add('btn-highlight');
+                        btnMatchStatus.innerHTML = '<i class="ph-fill ph-bell-ringing"></i> 새로운 소식 있음';
+                    }
+                }
+                return;
+            }
+
             const lvTime = new Date(lastViewed);
             
             // Fetch all records where the user is involved and were created recently
@@ -337,7 +355,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (n.to_user_id === sessionUser.id && n.status === 'pending') return true;
                     // 2. Sent request REJECTED BY them
                     if (n.from_user_id === sessionUser.id && n.status === 'rejected') return true;
-                    // 3. New match (either person gets the notification)
+                    // 3. New match (mutual pending)
                     return false; 
                 });
 
