@@ -2,6 +2,53 @@
  * Blind Date - Main JavaScript (Supabase Version)
  */
 
+// --- 인앱 브라우저 감지 → 외부 브라우저 강제 이동 (DOMContentLoaded 전에 실행) ---
+(function() {
+    const ua = navigator.userAgent.toLowerCase();
+    const inAppPatterns = /kakaotalk|telegram|instagram|fbav|fban|line\//i;
+    const isInApp = inAppPatterns.test(ua);
+    
+    if (!isInApp) return;
+    
+    const currentUrl = location.href;
+    
+    // Android: intent 스킴으로 기본 브라우저 열기
+    if (/android/i.test(ua)) {
+        // 카카오톡 전용 외부 브라우저 열기
+        if (/kakaotalk/i.test(ua)) {
+            location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
+            return;
+        }
+        // 기타 인앱 브라우저 → intent 스킴
+        location.href = 'intent://' + currentUrl.replace(/https?:\/\//, '') + 
+            '#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end';
+        return;
+    }
+    
+    // iOS: 강제 이동 불가 → 안내 배너 표시
+    if (/iphone|ipad|ipod/i.test(ua)) {
+        document.addEventListener('DOMContentLoaded', () => {
+            const banner = document.createElement('div');
+            banner.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+                background: linear-gradient(135deg, #ff4d6d, #7209b7);
+                color: white; padding: 16px 20px; font-size: 0.95rem;
+                text-align: center; font-weight: bold; line-height: 1.5;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            `;
+            banner.innerHTML = `
+                ⚠️ 자동 로그인을 위해 Safari로 열어주세요!<br>
+                <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.9;">
+                    하단 메뉴 → "Safari로 열기" 또는 "기본 브라우저로 열기"를 눌러주세요
+                </span>
+            `;
+            document.body.prepend(banner);
+            // 본문 내용이 배너에 가리지 않도록 여백 추가
+            document.body.style.paddingTop = '80px';
+        });
+    }
+})();
+
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("Blind Date initialized with Supabase.");
     
