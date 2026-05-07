@@ -432,20 +432,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loadTodayViews = async () => {
             if (!db || !sessionUser) return;
             
-            // 오늘 00:00:00 (UTC 기준 정렬을 위해 로컬 시간 계산 후 ISO 변환)
+            // 로컬 시간 기준 오늘 00:00:00 계산
             const now = new Date();
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const isoToday = todayStart.toISOString();
+            
+            console.log('조회수 체크 시작 시간 (UTC):', isoToday);
             
             // 오늘 내 프로필을 조회한 데이터 가져오기
             const { data: views, error } = await db.from('profile_views')
                 .select('viewer_id')
                 .eq('target_id', sessionUser.id)
-                .gte('viewed_at', todayStart.toISOString());
+                .gte('viewed_at', isoToday);
             
             if (error) {
                 console.error('조회수 로드 실패:', error);
                 return;
             }
+            
+            console.log('오늘 조회 데이터:', views);
             
             // 고유 시청자 수 계산 (중복 제외)
             const uniqueViewers = new Set((views || []).map(v => v.viewer_id)).size;
@@ -456,7 +461,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (countEl) countEl.innerText = uniqueViewers;
             
-            // 하이라이트 로직 (localStorage 이용)
+            // 하이라이트 로직
             const lastSeenCount = parseInt(localStorage.getItem(`lastSeenViews_${sessionUser.id}`) || '0');
             if (uniqueViewers > lastSeenCount) {
                 if (badge) badge.style.display = 'block';
@@ -466,12 +471,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (msg) msg.style.visibility = 'hidden';
             }
 
-            // 클릭 핸들러 (조회수 확인 처리)
             window.handleViewsClick = () => {
                 localStorage.setItem(`lastSeenViews_${sessionUser.id}`, uniqueViewers);
                 if (badge) badge.style.display = 'none';
                 if (msg) msg.style.visibility = 'hidden';
-                alert('오늘 내 프로필을 ' + uniqueViewers + '명이 확인했습니다!\n조회한 명단 공개 기능은 곧 업데이트될 예정입니다.');
+                alert('오늘 내 프로필을 ' + uniqueViewers + '명이 확인했습니다!');
             };
         };
         loadTodayViews();
@@ -1150,14 +1154,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             // [추가] 프로필 조회 로그 기록 (본인 제외)
             if (!isSelf && db) {
                 try {
-                    // upsert를 사용하여 기존 조회 기록이 있어도 시간만 업데이트 (오늘 조회로 포함되게 함)
-                    await db.from('profile_views').upsert([{
-                        viewer_id: sessionUser.id,
-                        target_id: targetUserId,
-                        viewed_at: new Date().toISOString()
-                    }]);
+                    // 이번 세션에서 이미 이 프로필을 본 적이 있는지 체크 (중복 인서트 방지)
+                    const sessionKey = `viewed_${targetUserId}`;
+                    if (!sessionStorage.getItem(sessionKey)) {
+                        const { error } = await db.from('profile_views').insert([{
+                            viewer_id: sessionUser.id,
+                            target_id: targetUserId,
+                            viewed_at: new Date().toISOString()
+                        }]);
+                        
+                        if (!error) {
+                            sessionStorage.setItem(sessionKey, 'true');
+                            console.log('프로필 조회 기록 성공:', targetUserId);
+                        } else {
+                            console.error('프로필 조회 기록 에러:', error);
+                        }
+                    }
                 } catch (e) {
-                    console.error('조회 로그 기록 실패:', e);
+                    console.error('조회 로그 처리 중 예외 발생:', e);
                 }
             }
 
