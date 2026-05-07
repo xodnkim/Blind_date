@@ -333,12 +333,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Update Main Dashboard Welcome Text
                 const mainTitle = document.getElementById('mainTitle');
                 const mainSubtitle = document.getElementById('mainSubtitle');
-                if (mainTitle) mainTitle.innerText = '인연을 찾아보세요 ✨';
+                if (mainTitle) mainTitle.innerHTML = '인연을 찾아보세요 <span class="title-accent">✨</span>';
                 if (mainSubtitle) mainSubtitle.innerText = '나와 잘 어울리는 새로운 인연을 탐색할 시간입니다.';
                 if (actionArea) {
                     actionArea.innerHTML = `
-                        <button class="btn-action secondary" onclick="window.location.href='profile_view.html'" style="flex: 1; padding: 12px; font-size: 0.95rem;">프로필 확인</button>
-                        <button class="btn-action" onclick="window.location.href='profile.html'" style="flex: 1; padding: 12px; font-size: 0.95rem;">프로필 수정</button>
+                        <button class="btn-action secondary" onclick="window.location.href='profile_view.html'" style="flex: 1;">프로필 확인</button>
+                        <button class="btn-action" onclick="window.location.href='profile.html'" style="flex: 1;">프로필 수정</button>
                     `;
                 }
             } else {
