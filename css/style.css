@@ -308,6 +308,11 @@ body {
     z-index: 10;
 }
 
+.admin-page .main-container {
+    max-width: 95%; /* Wider for admin */
+    padding: 40px 20px;
+}
+
 /* --- Notice Banner --- */
 .notice-banner {
     display: flex;
@@ -406,6 +411,12 @@ body {
     transform: translateY(-5px);
     box-shadow: 0 15px 30px -10px rgba(0,0,0,0.5);
     border-color: rgba(255,255,255,0.2);
+}
+
+.admin-card-full {
+    width: 100%;
+    max-width: 100% !important;
+    padding: 20px !important;
 }
 
 .primary-card {
@@ -706,14 +717,15 @@ body {
 .admin-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 700px;
+    min-width: 1300px;
 }
 
 .admin-table th, .admin-table td {
-    padding: 16px;
+    padding: 12px 8px;
     text-align: center;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
+    white-space: nowrap; /* Prevent vertical text wrapping */
 }
 
 .admin-table td:first-child {

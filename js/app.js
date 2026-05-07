@@ -432,18 +432,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loadTodayViews = async () => {
             if (!db || !sessionUser) return;
             
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
+            // 오늘 00:00:00 (UTC 기준 정렬을 위해 로컬 시간 계산 후 ISO 변환)
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             
-            // 오늘 내 프로필을 조회한 고유 사용자 수 가져오기
+            // 오늘 내 프로필을 조회한 데이터 가져오기
             const { data: views, error } = await db.from('profile_views')
                 .select('viewer_id')
                 .eq('target_id', sessionUser.id)
                 .gte('viewed_at', todayStart.toISOString());
             
-            if (error) return;
+            if (error) {
+                console.error('조회수 로드 실패:', error);
+                return;
+            }
             
-            // 고유 시청자 수 계산
+            // 고유 시청자 수 계산 (중복 제외)
             const uniqueViewers = new Set((views || []).map(v => v.viewer_id)).size;
             
             const countEl = document.getElementById('todayViewCount');
@@ -467,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 localStorage.setItem(`lastSeenViews_${sessionUser.id}`, uniqueViewers);
                 if (badge) badge.style.display = 'none';
                 if (msg) msg.style.visibility = 'hidden';
-                alert('오늘 내 프로필을 ' + uniqueViewers + '명이 조회했습니다!\n조회한 명단 공개 기능은 곧 업데이트될 예정입니다.');
+                alert('오늘 내 프로필을 ' + uniqueViewers + '명이 확인했습니다!\n조회한 명단 공개 기능은 곧 업데이트될 예정입니다.');
             };
         };
         loadTodayViews();
@@ -1146,7 +1150,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             // [추가] 프로필 조회 로그 기록 (본인 제외)
             if (!isSelf && db) {
                 try {
-                    await db.from('profile_views').insert([{
+                    // upsert를 사용하여 기존 조회 기록이 있어도 시간만 업데이트 (오늘 조회로 포함되게 함)
+                    await db.from('profile_views').upsert([{
                         viewer_id: sessionUser.id,
                         target_id: targetUserId,
                         viewed_at: new Date().toISOString()
