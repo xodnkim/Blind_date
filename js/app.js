@@ -1212,9 +1212,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const info = msgInfoMap[m.user_id];
                 let badge = '';
                 if (info && info.unread > 0) {
-                    badge = `<span class="msg-badge" style="margin-left: 0; margin-top: 8px;"><i class="ph-fill ph-chat-circle-dots"></i> ${info.unread}개 새 메시지</span>`;
+                    badge = `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);"><span class="msg-badge" style="margin-left: 0;"><i class="ph-fill ph-chat-circle-dots"></i> ${info.unread}개 새 메시지</span></div>`;
                 } else if (info && info.total > 0) {
-                    badge = `<span class="member-tag" style="background: rgba(67, 97, 238, 0.15); color: #4361ee; border: 1px solid rgba(67, 97, 238, 0.3); margin-top: 8px;"><i class="ph ph-chat-circle-dots" style="margin-right: 3px;"></i> 대화 중</span>`;
+                    badge = `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);"><span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: #7c8aff; font-weight: 600;"><i class="ph-fill ph-chat-circle-dots"></i> 대화 중</span></div>`;
                 }
                 return `
                 <div class="member-card" onclick="window.location.href='profile_view.html?id=${encodeURIComponent(m.user_id)}'">
