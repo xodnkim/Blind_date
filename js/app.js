@@ -863,8 +863,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td style="font-size: 0.9rem;">${escapeHtml(u.phone || '-')}</td>
                     <td>${escapeHtml(u.referrer || '-')}</td>
                     <td>${statusBadge}</td>
-                    <td style="font-weight: bold; color: ${ (countMap[u.id] || 0) >= 2 ? '#ff4d6d' : ((countMap[u.id] || 0) > 0 ? '#ffce00' : '#888') }">
-                        ${countMap[u.id] || 0} / 2
+                    <td>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <button class="btn-small secondary" style="padding: 2px 8px;" onclick="changeUserLimit('${u.id}', ${u.daily_limit || 2}, -1)">-</button>
+                            <span style="font-weight: bold; min-width: 45px; color: ${ (countMap[u.id] || 0) >= (u.daily_limit || 2) ? '#ff4d6d' : ((countMap[u.id] || 0) > 0 ? '#ffce00' : '#888') }">
+                                ${countMap[u.id] || 0} / ${u.daily_limit || 2}
+                            </span>
+                            <button class="btn-small secondary" style="padding: 2px 8px;" onclick="changeUserLimit('${u.id}', ${u.daily_limit || 2}, 1)">+</button>
+                        </div>
                     </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
@@ -895,6 +901,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('승인 처리 중 오류 발생: ' + error.message);
             } else {
                 alert('승인되었습니다.');
+                loadPendingUsers();
+            }
+        };
+
+        window.changeUserLimit = async (userId, currentLimit, delta) => {
+            const newLimit = currentLimit + delta;
+            if (newLimit < 0) return;
+            
+            const { error } = await db.from('users').update({ daily_limit: newLimit }).eq('id', userId);
+            if (error) {
+                alert('한도 수정 실패: ' + error.message);
+            } else {
                 loadPendingUsers();
             }
         };
@@ -1453,8 +1471,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btnRequest.onclick = async () => {
                     if (myRequestStatus === 'pending') return;
 
-                    // [추가] 하루 매칭 신청 제한 (2회) - 수락(incomingReq)이 아닌 경우에만 체크
+                    // [추가] 하루 매칭 신청 제한 (유저별 설정값 기준) - 수락(incomingReq)이 아닌 경우에만 체크
                     if (!incomingReq) {
+                        // 유저의 한도 정보를 다시 가져옴 (최신값 확인)
+                        const { data: userData } = await db.from('users').select('daily_limit').eq('id', sessionUser.id).single();
+                        const dailyLimit = userData?.daily_limit || 2;
+
                         const todayStart = new Date();
                         todayStart.setHours(0, 0, 0, 0);
                         
@@ -1463,8 +1485,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             .eq('from_user_id', sessionUser.id)
                             .gte('created_at', todayStart.toISOString());
                         
-                        if (!countError && count >= 2) {
-                            alert('⚠️ 오늘 매칭 신청 가능 횟수(2회)를 모두 소진하셨습니다.\n내일 자정 이후에 다시 신청해주세요!');
+                        if (!countError && count >= dailyLimit) {
+                            alert(`⚠️ 오늘 매칭 신청 가능 횟수(${dailyLimit}회)를 모두 소진하셨습니다.\n내일 자정 이후에 다시 신청해주세요!`);
                             return;
                         }
                     }
