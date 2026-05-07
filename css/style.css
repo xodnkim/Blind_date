@@ -649,7 +649,7 @@ body {
 
 .admin-table th, .admin-table td {
     padding: 16px;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid var(--border);
 }
 

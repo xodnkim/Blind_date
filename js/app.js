@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const statusBadge = u.status === 'pending' ? '<span class="badge pending">대기</span>' : '<span class="badge approved">승인됨</span>';
                 return `
                 <tr>
-                    <td style="font-size: 0.8rem; color: #888;">${escapeHtml(u.id.substring(0,8))}...</td>
+                    <td style="font-size: 0.7rem; color: #888; font-family: monospace; min-width: 120px;">${escapeHtml(u.id)}</td>
                     <td style="font-weight: 800;">${escapeHtml(u.name)}</td>
                     <td style="font-size: 0.9rem;">${escapeHtml(u.phone || '-')}</td>
                     <td>${escapeHtml(u.referrer || '-')}</td>
