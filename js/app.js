@@ -1472,8 +1472,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     badge = `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);"><span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: #7c8aff; font-weight: 600;"><i class="ph-fill ph-chat-circle-dots"></i> 대화 중</span></div>`;
                 }
 
-                // 나를 좋아하는 경우 뱃지 추가 (새로운 경우에만 강조)
-                const likedMeBadge = isNewLike ? `<span class="like-badge" style="position: absolute; top: 15px; left: 15px; z-index: 20; background: rgba(255, 77, 109, 0.9);"><i class="ph-fill ph-heart"></i> Liked You</span>` : '';
+                // 나를 좋아하는 경우 뱃지 추가 (항상 유지)
+                const likedMeBadge = hasLikedMe ? `<span class="like-badge" style="position: absolute; top: 15px; left: 15px; z-index: 20; background: rgba(255, 77, 109, 0.9);"><i class="ph-fill ph-heart"></i> Liked You</span>` : '';
 
                 return `
                 <div class="member-card" onclick="window.location.href='profile_view.html?id=${encodeURIComponent(m.user_id)}'">
