@@ -2,6 +2,10 @@
 const SUPABASE_URL = 'https://tgadwymewkfztonyjxur.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_t0OqQc9Rh1HI_A8gN8k8fg_I-Kl9j5Q';
 
+// Telegram Configuration
+window.TELEGRAM_TOKEN = '8600992125:AAGR36cuMHt7eycfPcVKGtinyqBva8O_AGo';
+window.TELEGRAM_CHAT_ID = '8600992125';
+
 try {
     if (typeof supabase !== 'undefined') {
         const { createClient } = supabase;

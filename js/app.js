@@ -25,6 +25,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // --- 텔레그램 알림 전송 함수 ---
+    const sendTelegramMessage = async (message) => {
+        const token = window.TELEGRAM_TOKEN;
+        const chatId = window.TELEGRAM_CHAT_ID;
+        if (!token || !chatId) return;
+
+        const url = `https://api.telegram.org/bot${token}/sendMessage`;
+        try {
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: 'HTML'
+                })
+            });
+        } catch (e) {
+            console.error("Telegram Notification Failed:", e);
+        }
+    };
+
     // --- Admin Credentials (Hardcoded for initial setup) ---
     const ADMIN_ID = "xodn9900";
     const ADMIN_PW = "dkvmflzk12!";
@@ -123,6 +145,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     alert('회원가입 처리 중 오류가 발생했습니다: ' + error.message);
                 }
             } else {
+                // 텔레그램 알림 전송
+                const msg = `🔔 <b>새로운 가입 신청!</b>\n\n` +
+                            `아이디: ${id}\n` +
+                            `이름: ${name}\n` +
+                            `연락처: ${phone}\n` +
+                            `추천인: ${referrer}\n\n` +
+                            `관리자 페이지에서 승인을 진행해주세요!`;
+                sendTelegramMessage(msg);
+
                 alert(`${name}님, 회원가입 요청이 전송되었습니다.\n지인 확인 후 승인해 드릴 예정입니다.`);
                 window.location.href = 'index.html';
             }
@@ -525,6 +556,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         loadPendingUsers();
+
+        // 텔레그램 테스트 버튼
+        const testBtn = document.getElementById('testTelegramBtn');
+        if (testBtn) {
+            testBtn.addEventListener('click', async () => {
+                testBtn.disabled = true;
+                testBtn.innerText = '전송 중...';
+                
+                const msg = `✅ <b>Blind Date 텔레그램 연결 성공!</b>\n\n새로운 봇으로 알림이 정상적으로 연동되었습니다.`;
+                await sendTelegramMessage(msg);
+                
+                alert('텔레그램으로 테스트 메시지를 전송했습니다. 봇 채팅창을 확인해주세요!');
+                testBtn.disabled = false;
+                testBtn.innerText = '텔레그램 알림 테스트';
+            });
+        }
     }
 
     // --- Profile View Logic ---
