@@ -832,13 +832,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const { data: users, error } = await db.from('users').select('*').order('created_at', { ascending: false });
             
+            // [추가] 오늘 보낸 매칭 신청 데이터 일괄 조회
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const { data: todayMatches } = await db.from('matches')
+                .select('from_user_id')
+                .gte('created_at', todayStart.toISOString());
+            
+            const countMap = {};
+            (todayMatches || []).forEach(m => {
+                countMap[m.from_user_id] = (countMap[m.from_user_id] || 0) + 1;
+            });
+            
             if (error) {
-                listBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--primary);">오류 발생: ${error.message}</td></tr>`;
+                listBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--primary);">오류 발생: ${error.message}</td></tr>`;
                 return;
             }
 
             if (!users || users.length === 0) {
-                listBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">가입 대기 중인 회원이 없습니다.</td></tr>`;
+                listBody.innerHTML = `<tr><td colspan="8" style="text-align: center;">가입 대기 중인 회원이 없습니다.</td></tr>`;
                 return;
             }
 
@@ -851,6 +863,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td style="font-size: 0.9rem;">${escapeHtml(u.phone || '-')}</td>
                     <td>${escapeHtml(u.referrer || '-')}</td>
                     <td>${statusBadge}</td>
+                    <td style="font-weight: bold; color: ${ (countMap[u.id] || 0) >= 2 ? '#ff4d6d' : ((countMap[u.id] || 0) > 0 ? '#ffce00' : '#888') }">
+                        ${countMap[u.id] || 0} / 2
+                    </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
                             <button class="btn-small secondary" onclick="window.location.href='profile_view.html?id=${u.id}'" title="원본 프로필 보기"><i class="ph ph-user-focus"></i></button>
