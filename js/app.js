@@ -213,10 +213,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             const id = document.getElementById('signupId').value;
             const password = document.getElementById('signupPassword').value;
+            const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
             const name = document.getElementById('signupName').value;
             const phone = document.getElementById('signupPhone').value;
             const referrer = document.getElementById('signupReferrer').value;
             
+            if (password !== passwordConfirm) {
+                alert('비밀번호가 일치하지 않습니다. 다시 확인해주세요.');
+                return;
+            }
             if (!db) {
                 alert('데이터베이스 연결이 설정되지 않았습니다.');
                 return;
