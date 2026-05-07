@@ -413,12 +413,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 5-1. Check for Likes Received (Feature 2)
         const checkLikes = async () => {
             if (!db || !sessionUser) return;
-            const { count } = await db.from('likes').select('id', { count: 'exact', head: true }).eq('to_user_id', sessionUser.id);
+            const { data: recLikes } = await db.from('likes').select('id').eq('to_user_id', sessionUser.id);
             
-            if (count && count > 0) {
+            const seenLikeIdsKey = `seenLikeIds_${sessionUser.id}`;
+            const seenLikeIds = JSON.parse(localStorage.getItem(seenLikeIdsKey) || '[]');
+            
+            const newLikes = (recLikes || []).filter(l => !seenLikeIds.includes(l.id));
+
+            if (newLikes.length > 0) {
                 const btnFindDate = document.getElementById('btnFindDate');
                 if (btnFindDate && !btnFindDate.innerHTML.includes('like-badge')) {
-                    btnFindDate.innerHTML += ` <span class="like-badge"><i class="ph-fill ph-heart"></i> ${count}</span>`;
+                    btnFindDate.innerHTML += ` <span class="like-badge"><i class="ph-fill ph-heart"></i> ${newLikes.length}</span>`;
                 }
             }
         };
@@ -1445,14 +1450,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { data: myLikes } = await db.from('likes').select('to_user_id').eq('from_user_id', sessionUser.id);
             const likedUserIds = (myLikes || []).map(l => l.to_user_id);
 
-            const { data: recLikes } = await db.from('likes').select('from_user_id').eq('to_user_id', sessionUser.id);
-            const recLikedUserIds = (recLikes || []).map(l => l.from_user_id);
+            const { data: recLikes } = await db.from('likes').select('id, from_user_id').eq('to_user_id', sessionUser.id);
+            
+            // 읽음 처리 로직 (신청관리와 동일)
+            const seenLikeIdsKey = `seenLikeIds_${sessionUser.id}`;
+            const seenLikeIds = JSON.parse(localStorage.getItem(seenLikeIdsKey) || '[]');
+            const currentLikeIds = (recLikes || []).map(l => l.id);
 
             const grid = document.getElementById('membersGrid');
             grid.innerHTML = finalMembers.map(m => {
                 const info = msgInfoMap[m.user_id];
                 const isLiked = likedUserIds.includes(m.user_id);
-                const hasLikedMe = recLikedUserIds.includes(m.user_id);
+                const recLikeRecord = (recLikes || []).find(l => l.from_user_id === m.user_id);
+                const hasLikedMe = !!recLikeRecord;
+                const isNewLike = hasLikedMe && !seenLikeIds.includes(recLikeRecord.id);
 
                 let badge = '';
                 if (info && info.unread > 0) {
@@ -1461,8 +1472,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     badge = `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);"><span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: #7c8aff; font-weight: 600;"><i class="ph-fill ph-chat-circle-dots"></i> 대화 중</span></div>`;
                 }
 
-                // 나를 좋아하는 경우 뱃지 추가
-                const likedMeBadge = hasLikedMe ? `<span class="like-badge" style="position: absolute; top: 15px; left: 15px; z-index: 20; background: rgba(255, 77, 109, 0.9);"><i class="ph-fill ph-heart"></i> Liked You</span>` : '';
+                // 나를 좋아하는 경우 뱃지 추가 (새로운 경우에만 강조)
+                const likedMeBadge = isNewLike ? `<span class="like-badge" style="position: absolute; top: 15px; left: 15px; z-index: 20; background: rgba(255, 77, 109, 0.9);"><i class="ph-fill ph-heart"></i> Liked You</span>` : '';
 
                 return `
                 <div class="member-card" onclick="window.location.href='profile_view.html?id=${encodeURIComponent(m.user_id)}'">
@@ -1484,6 +1495,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
             }).join('');
+
+            // 모든 현재 좋아요를 '읽음' 상태로 저장
+            localStorage.setItem(seenLikeIdsKey, JSON.stringify(currentLikeIds));
         };
 
         // 좋아요 토글 (기능 3번)
