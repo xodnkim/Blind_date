@@ -775,7 +775,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td>
                         <div style="display: flex; gap: 5px;">
                             <button class="btn-small secondary" onclick="window.location.href='profile_view.html?id=${u.id}'" title="원본 프로필 보기"><i class="ph ph-user-focus"></i></button>
-                            <button class="btn-small secondary" onclick="viewUserMatches('${u.id}')" title="신청/매칭 내역"><i class="ph ph-arrows-left-right"></i></button>
+                            <button class="btn-small secondary" onclick="window.location.href='match_status.html?id=${u.id}'" title="신청/매칭 내역"><i class="ph ph-arrows-left-right"></i></button>
                             <button class="btn-small secondary" onclick="viewUserMessages('${u.id}')" title="메시지 로그"><i class="ph ph-chat-text"></i></button>
                         </div>
                     </td>
@@ -1177,8 +1177,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .eq('is_read', false);
             };
 
-            // 채팅 영역 표시 (본인 아닌 경우만)
-            if (!isSelf) {
+            // 채팅 영역 표시 (본인 아닌 경우 + 관리자 아닌 경우만)
+            if (!isSelf && sessionUser.role !== 'admin') {
                 chatArea.style.display = 'block';
                 loadAndRenderMessages();
 
@@ -1237,7 +1237,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isSelf) {
                 selfMsg.style.display = 'block';
             } else {
-                actionArea.style.display = 'block';
+                if (sessionUser.role !== 'admin') {
+                    actionArea.style.display = 'block';
+                }
                 
                 const successMsg = document.getElementById('matchSuccessMsg');
                 const matchButtons = document.getElementById('matchButtons');
@@ -1629,16 +1631,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loadMatchStatus = async () => {
             if (!db || !sessionUser) return;
 
+            // Admin Impersonation Logic (Feature 4)
+            const urlParams = new URLSearchParams(window.location.search);
+            const adminTargetId = urlParams.get('id');
+            const targetId = (adminTargetId && sessionUser.role === 'admin') ? adminTargetId : sessionUser.id;
+
             // 1. Get Seen IDs from localStorage to determine what's "NEW"
-            const seenIdsKey = `seenMatchIds_${sessionUser.id}`;
+            const seenIdsKey = `seenMatchIds_${targetId}`;
             const seenIds = JSON.parse(localStorage.getItem(seenIdsKey) || '[]');
 
             const { data: profiles } = await db.from('profiles').select('*');
             const profileMap = {};
             profiles?.forEach(p => profileMap[p.user_id] = p);
 
-            const { data: sent } = await db.from('matches').select('*').eq('from_user_id', sessionUser.id);
-            const { data: received } = await db.from('matches').select('*').eq('to_user_id', sessionUser.id);
+            const { data: sent } = await db.from('matches').select('*').eq('from_user_id', targetId);
+            const { data: received } = await db.from('matches').select('*').eq('to_user_id', targetId);
 
             document.getElementById('loadingArea').style.display = 'none';
             document.getElementById('statusContent').style.display = 'block';
@@ -1705,11 +1712,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             // Identify Likes Received (Feature 2)
-            const { data: myLikesRec } = await db.from('likes').select('*').eq('to_user_id', sessionUser.id);
+            const { data: myLikesRec } = await db.from('likes').select('*').eq('to_user_id', targetId);
             const likeRecList = document.getElementById('likeRecList');
             const likeCountBadge = document.getElementById('likeCountBadge');
 
-            const seenLikeIdsKey = `seenLikeIds_${sessionUser.id}`;
+            const seenLikeIdsKey = `seenLikeIds_${targetId}`;
             const seenLikeIds = JSON.parse(localStorage.getItem(seenLikeIdsKey) || '[]');
             const currentLikeIds = (myLikesRec || []).map(l => l.id);
 
