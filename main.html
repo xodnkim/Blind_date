@@ -47,7 +47,7 @@
         <div class="dashboard-grid">
             
             <!-- Today Views Card -->
-            <div class="feature-card" id="viewsCard" onclick="handleViewsClick()" style="cursor: pointer;">
+            <div class="feature-card" id="viewsCard">
                 <div class="card-badge" id="newViewBadge" style="display: none; background: #ffce00; color: #000;">! NEW</div>
                 <div class="card-icon"><i class="ph-fill ph-eye"></i></div>
                 <div class="card-content">
@@ -60,7 +60,7 @@
                         조회수가 올라갔습니다!
                     </div>
                 </div>
-                <button class="btn-action secondary">상세 정보 (준비 중)</button>
+                <button class="btn-action secondary" onclick="handleViewsClick()">상세 정보 (준비 중)</button>
             </div>
 
             <!-- Profile Card -->

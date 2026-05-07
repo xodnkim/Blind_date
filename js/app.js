@@ -481,7 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     localStorage.setItem(`lastSeenViews_${currentUser.id}`, uniqueCount);
                     if (badge) badge.style.display = 'none';
                     if (msg) msg.style.visibility = 'hidden';
-                    alert(`오늘 내 프로필을 ${uniqueCount}명이 확인했습니다!`);
+                    alert('상세 조회 기능은 준비 중입니다.');
                 };
             } catch (e) {
                 console.error('[조회수] 예외 발생:', e);
