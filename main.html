@@ -40,7 +40,24 @@
         <!-- Feature Cards Grid -->
         <div class="dashboard-grid">
             
-            <!-- 1. 인연 탐색 카드 (2개 버튼) -->
+            <!-- Today Views Card -->
+            <div class="feature-card" id="viewsCard" onclick="handleViewsClick()" style="cursor: pointer;">
+                <div class="card-badge" id="newViewBadge" style="display: none; background: #ffce00; color: #000;">! NEW</div>
+                <div class="card-icon"><i class="ph-fill ph-eye"></i></div>
+                <div class="card-content">
+                    <h3>Today 프로필 조회수</h3>
+                    <p>오늘 내 프로필을 확인한 사람들의 수입니다.</p>
+                    <div style="font-size: 2.5rem; font-weight: 900; color: var(--primary); margin: 10px 0;">
+                        <span id="todayViewCount">0</span><span style="font-size: 1rem; color: var(--text-muted); margin-left: 5px;">명</span>
+                    </div>
+                    <div id="viewIncrMsg" style="font-size: 0.85rem; color: #ffce00; font-weight: bold; visibility: hidden;">
+                        조회수가 올라갔습니다!
+                    </div>
+                </div>
+                <button class="btn-action secondary">상세 정보 (준비 중)</button>
+            </div>
+
+            <!-- Profile Card -->
             <div class="feature-card">
                 <div class="card-icon" style="color: #FF4D6D;"><i class="ph-fill ph-heart-straight"></i></div>
                 <div class="card-content">

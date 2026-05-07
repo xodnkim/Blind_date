@@ -374,6 +374,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         checkProfileStatus();
 
+        // 4.5 [추가] Today 프로필 조회수 로드
+        const loadTodayViews = async () => {
+            if (!db || !sessionUser) return;
+            
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            
+            // 오늘 내 프로필을 조회한 고유 사용자 수 가져오기
+            const { data: views, error } = await db.from('profile_views')
+                .select('viewer_id')
+                .eq('target_id', sessionUser.id)
+                .gte('viewed_at', todayStart.toISOString());
+            
+            if (error) return;
+            
+            // 고유 시청자 수 계산
+            const uniqueViewers = new Set((views || []).map(v => v.viewer_id)).size;
+            
+            const countEl = document.getElementById('todayViewCount');
+            const badge = document.getElementById('newViewBadge');
+            const msg = document.getElementById('viewIncrMsg');
+            
+            if (countEl) countEl.innerText = uniqueViewers;
+            
+            // 하이라이트 로직 (localStorage 이용)
+            const lastSeenCount = parseInt(localStorage.getItem(`lastSeenViews_${sessionUser.id}`) || '0');
+            if (uniqueViewers > lastSeenCount) {
+                if (badge) badge.style.display = 'block';
+                if (msg) msg.style.visibility = 'visible';
+            } else {
+                if (badge) badge.style.display = 'none';
+                if (msg) msg.style.visibility = 'hidden';
+            }
+
+            // 클릭 핸들러 (조회수 확인 처리)
+            window.handleViewsClick = () => {
+                localStorage.setItem(`lastSeenViews_${sessionUser.id}`, uniqueViewers);
+                if (badge) badge.style.display = 'none';
+                if (msg) msg.style.visibility = 'hidden';
+                alert('오늘 내 프로필을 ' + uniqueViewers + '명이 조회했습니다!\n조회한 명단 공개 기능은 곧 업데이트될 예정입니다.');
+            };
+        };
+        loadTodayViews();
+
         // 5. Check for Notifications (New match requests received)
         const checkNotifications = async () => {
             if (!db || !sessionUser) return;
@@ -1004,6 +1048,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const targetUserId = urlParams.get('id') || sessionUser.id;
             const isSelf = targetUserId === sessionUser.id;
+
+            // [추가] 프로필 조회 로그 기록 (본인 제외)
+            if (!isSelf && db) {
+                try {
+                    await db.from('profile_views').insert([{
+                        viewer_id: sessionUser.id,
+                        target_id: targetUserId,
+                        viewed_at: new Date().toISOString()
+                    }]);
+                } catch (e) {
+                    console.error('조회 로그 기록 실패:', e);
+                }
+            }
 
             // 1. Fetch Profile Data
             const { data: profile, error } = await db.from('profiles').select('*').eq('user_id', targetUserId).single();
