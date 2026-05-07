@@ -1627,15 +1627,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             const likeRecList = document.getElementById('likeRecList');
             const likeCountBadge = document.getElementById('likeCountBadge');
 
+            const seenLikeIdsKey = `seenLikeIds_${sessionUser.id}`;
+            const seenLikeIds = JSON.parse(localStorage.getItem(seenLikeIdsKey) || '[]');
+            const currentLikeIds = (myLikesRec || []).map(l => l.id);
+
             if (likeRecList) {
                 if (myLikesRec && myLikesRec.length > 0) {
-                    if (likeCountBadge) likeCountBadge.innerText = myLikesRec.length;
-                    likeRecList.innerHTML = myLikesRec.map(l => renderItem(l.from_user_id, '나를 좋아함', 'badge-success', false, false, false)).join('');
+                    const newLikesCount = myLikesRec.filter(l => !seenLikeIds.includes(l.id)).length;
+                    
+                    if (likeCountBadge) {
+                        if (newLikesCount > 0) {
+                            likeCountBadge.innerText = newLikesCount;
+                            likeCountBadge.style.display = 'inline-flex';
+                        } else {
+                            likeCountBadge.style.display = 'none';
+                        }
+                    }
+                    
+                    likeRecList.innerHTML = myLikesRec.map(l => renderItem(l.from_user_id, '나를 좋아함', 'badge-success', false, false, !seenLikeIds.includes(l.id))).join('');
                     document.getElementById('likeSection').style.display = 'block';
                 } else {
                     document.getElementById('likeSection').style.display = 'none';
                 }
             }
+
+            // 모든 현재 좋아요를 '읽음' 상태로 저장
+            localStorage.setItem(seenLikeIdsKey, JSON.stringify(currentLikeIds));
 
             // Identify Mutual Matches
             sent?.forEach(s => {
