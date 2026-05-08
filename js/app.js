@@ -436,12 +436,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             
-            // 로컬 시간 기준 오늘 00:00:00 계산 (UTC 변환)
+            // 로컬 시간 기준 오늘 00:00:00 계산
             const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const isoToday = todayStart.toISOString();
+            // 로컬 시간대를 반영한 ISO 스트링 생성 (예: 2026-05-08T00:00:00.000)
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const isoToday = `${year}-${month}-${day}T00:00:00.000`; // Supabase/Postgres는 문자열 비교 시 시간대 보정함
             
-            console.log(`[조회수] ${currentUser.id}의 오늘(${isoToday}) 조회수 확인 중...`);
+            console.log(`[조회수] ${currentUser.id}의 오늘(${isoToday} 이후) 조회수 확인 중...`);
             
             try {
                 // 오늘 내 프로필을 조회한 데이터 가져오기
@@ -1012,7 +1015,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await db.from('matches').delete().or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
                 // 3. 좋아요 데이터 삭제
                 await db.from('likes').delete().or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
-                // 4. 프로필 데이터 삭제
+                // 4. 프로필 조회수 기록 삭제
+                await db.from('profile_views').delete().or(`viewer_id.eq.${userId},target_id.eq.${userId}`);
+                // 5. 프로필 데이터 삭제
                 await db.from('profiles').delete().eq('user_id', userId);
                 // 5. 사용자 계정 삭제
                 const { error } = await db.from('users').delete().eq('id', userId);
