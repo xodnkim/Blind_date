@@ -577,11 +577,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .eq('is_read', false);
             
             if (count && count > 0) {
-                const btnFindDate = document.getElementById('btnFindDate');
-                if (btnFindDate) {
-                    btnFindDate.innerHTML = `인연 찾기 <span class="msg-badge">${count}</span>`;
-                }
-                // [추가] 신청 관리 버튼에도 메시지 뱃지 표시
+                // [추가] 신청 관리 버튼에만 메시지 뱃지 표시
                 const btnMatchStatus = document.getElementById('btnMatchStatus');
                 if (btnMatchStatus) {
                     btnMatchStatus.innerHTML = `신청 관리 <span class="msg-badge">${count}</span>`;
