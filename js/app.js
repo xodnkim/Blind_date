@@ -576,7 +576,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (count && count > 0) {
                 const btnFindDate = document.getElementById('btnFindDate');
                 if (btnFindDate) {
-                    btnFindDate.innerHTML = `<i class="ph-fill ph-chat-circle-dots"></i> 인연 찾기 <span class="msg-badge">${count}</span>`;
+                    btnFindDate.innerHTML = `인연 찾기 <span class="msg-badge">${count}</span>`;
+                }
+                // [추가] 신청 관리 버튼에도 메시지 뱃지 표시
+                const btnMatchStatus = document.getElementById('btnMatchStatus');
+                if (btnMatchStatus) {
+                    btnMatchStatus.innerHTML = `신청 관리 <span class="msg-badge">${count}</span>`;
                 }
             }
         };
@@ -1963,18 +1968,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>`;
                 }
 
+                // 대화 미리보기 및 뱃지 추가
+                const msgInfo = msgInfoMap[userId];
+                let msgPreviewHtml = '';
+                if (msgInfo && msgInfo.lastMsg) {
+                    const isMe = msgInfo.lastMsg.from_user_id === targetId;
+                    msgPreviewHtml = `
+                        <div style="margin-top: 5px; display: flex; align-items: center; gap: 5px;">
+                            <span style="font-size: 0.75rem; color: ${msgInfo.unread > 0 ? 'var(--primary)' : '#888'}; font-weight: ${msgInfo.unread > 0 ? 'bold' : 'normal'}; display: flex; align-items: center; gap: 3px;">
+                                <i class="ph-fill ph-chat-circle-dots"></i> 
+                                ${isMe ? '나: ' : ''}${escapeHtml(msgInfo.lastMsg.content)}
+                            </span>
+                            ${msgInfo.unread > 0 ? `<span class="new-badge" style="margin: 0; padding: 1px 5px; font-size: 0.6rem;">${msgInfo.unread}</span>` : ''}
+                        </div>
+                    `;
+                }
+
                 return `
-                    <div class="match-item ${isMatched ? 'success' : ''} ${isNew ? 'is-new' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
+                    <div class="match-item ${isMatched ? 'success' : ''} ${(isNew || (msgInfo && msgInfo.unread > 0)) ? 'is-new' : ''}" onclick="window.location.href='profile_view.html?id=${userId}'">
                         <div class="user-info">
                             <div class="user-avatar-small"><i class="ph-fill ph-user"></i></div>
                             <div class="user-details">
-                                <h4>${isNew ? '<span class="new-badge">NEW</span>' : ''}${p.name}</h4>
+                                <h4>${(isNew || (msgInfo && msgInfo.unread > 0)) ? '<span class="new-badge">NEW</span>' : ''}${p.name}</h4>
                                 <p>${p.birth_year}년생 · ${p.location} · ${p.height}cm</p>
-                                <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
-                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.job}</span>
-                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.mbti}</span>
-                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa;">${p.body_type}</span>
-                                </div>
+                                ${msgPreviewHtml}
                                 ${matchMsgHtml}
                             </div>
                         </div>
@@ -2052,6 +2069,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                     receivedItems.push(r);
                 }
             });
+
+            // 정렬 로직: 읽지 않은 메시지가 있는 사람을 최상단으로
+            const sortByMessages = (a, b) => {
+                const aInfo = msgInfoMap[a.userId || a.from_user_id || a.to_user_id];
+                const bInfo = msgInfoMap[b.userId || b.from_user_id || b.to_user_id];
+                const aUnread = aInfo ? aInfo.unread : 0;
+                const bUnread = bInfo ? bInfo.unread : 0;
+                if (bUnread !== aUnread) return bUnread - aUnread;
+                
+                // 메시지 시간순 (최신순)
+                const aTime = aInfo && aInfo.lastMsg ? new Date(aInfo.lastMsg.created_at).getTime() : 0;
+                const bTime = bInfo && bInfo.lastMsg ? new Date(bInfo.lastMsg.created_at).getTime() : 0;
+                return bTime - aTime;
+            };
+
+            matchedItems.sort(sortByMessages);
+            receivedItems.sort(sortByMessages);
+            sentItems.sort(sortByMessages);
 
             matchedList.innerHTML = matchedItems.length > 0 ? matchedItems.map(item => renderItem(item.userId, '매칭 성공', 'badge-success', true, false, item.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">아직 매칭된 인연이 없습니다.</p>';
             receivedList.innerHTML = receivedItems.length > 0 ? receivedItems.map(r => renderItem(r.from_user_id, '확인하기', 'badge-pending', false, true, r.isNew)).join('') : '<p style="font-size:0.9rem; color:#666; padding:10px;">나를 선택한 분이 아직 없습니다.</p>';
