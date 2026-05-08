@@ -1932,6 +1932,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { data: sent } = await db.from('matches').select('*').eq('from_user_id', targetId);
             const { data: received } = await db.from('matches').select('*').eq('to_user_id', targetId);
 
+            // [추가] 내 모든 메시지 데이터 가져오기 (뱃지 및 미리보기용)
+            const { data: myMessages } = await db.from('messages')
+                .select('*')
+                .or(`from_user_id.eq.${targetId},to_user_id.eq.${targetId}`)
+                .order('created_at', { ascending: false });
+
+            const msgInfoMap = {};
+            (myMessages || []).forEach(msg => {
+                const otherId = msg.from_user_id === targetId ? msg.to_user_id : msg.from_user_id;
+                if (!msgInfoMap[otherId]) msgInfoMap[otherId] = { total: 0, unread: 0, lastMsg: null };
+                msgInfoMap[otherId].total++;
+                if (!msgInfoMap[otherId].lastMsg) msgInfoMap[otherId].lastMsg = msg;
+                if (msg.to_user_id === targetId && !msg.is_read) {
+                    msgInfoMap[otherId].unread++;
+                }
+            });
+
             document.getElementById('loadingArea').style.display = 'none';
             document.getElementById('statusContent').style.display = 'block';
 
@@ -2051,7 +2068,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (mutualRec) currentRecordIds.push(mutualRec.id);
                     
                     const isNew = !seenIds.includes(s.id) || (mutualRec && !seenIds.includes(mutualRec.id));
-                    matchedItems.push({ userId: s.to_user_id, isNew });
+                    matchedItems.push({ userId: s.to_user_id, partnerId: s.to_user_id, isNew });
                 } else if (s.status === 'pending' || s.status === 'rejected') {
                     currentRecordIds.push(s.id);
                     if (s.status === 'rejected') {
@@ -2060,6 +2077,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else {
                         s.isNew = false; // Don't highlight my own newly sent requests
                     }
+                    s.partnerId = s.to_user_id; // [추가] 정렬을 위해 파트너 ID 명시
                     sentItems.push(s);
                 }
             });
@@ -2071,14 +2089,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     r.myResponseStatus = myResponse?.status;
                     // Highlight if new pending request received
                     r.isNew = r.status === 'pending' && !seenIds.includes(r.id);
+                    r.partnerId = r.from_user_id; // [추가] 정렬을 위해 파트너 ID 명시
                     receivedItems.push(r);
                 }
             });
 
             // 정렬 로직: 읽지 않은 메시지가 있는 사람을 최상단으로
             const sortByMessages = (a, b) => {
-                const aInfo = msgInfoMap[a.userId || a.from_user_id || a.to_user_id];
-                const bInfo = msgInfoMap[b.userId || b.from_user_id || b.to_user_id];
+                const aInfo = msgInfoMap[a.partnerId];
+                const bInfo = msgInfoMap[b.partnerId];
                 const aUnread = aInfo ? aInfo.unread : 0;
                 const bUnread = bInfo ? bInfo.unread : 0;
                 if (bUnread !== aUnread) return bUnread - aUnread;
