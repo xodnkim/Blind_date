@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const NOTIFY_SECRET = 'bd_notify_2026_s3cr3t_k3y';
     const sendTelegramMessage = async (message) => {
         try {
-            await fetch('/api/notify', {
+            const response = await fetch('/api/notify', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -97,8 +97,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 },
                 body: JSON.stringify({ message })
             });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error(`Telegram Notification Failed (${response.status}):`, errorData.error || response.statusText);
+            } else {
+                console.log("Telegram Notification Sent successfully.");
+            }
         } catch (e) {
-            console.error("Telegram Notification Failed:", e);
+            console.error("Telegram Notification Network Error:", e);
         }
     };
 
